@@ -1,8 +1,8 @@
-#include "sk_memory.h"
+#include "sk_utils.h"
 
 #include <stdio.h>
 
-void *reallocate(void *ptr, size_t new_size)
+void *sk_reallocate(void *ptr, size_t new_size)
 {
     if (new_size == 0) {
         free(ptr);
