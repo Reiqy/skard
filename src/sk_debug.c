@@ -25,15 +25,21 @@ static size_t debug_simple_instruction(const char *name)
     return 1;
 }
 
+static size_t debug_const_instruction(const char *name)
+{
+    printf("%s", name);
+    return 2;
+}
+
 static size_t debug_instruction(uint8_t instruction)
 {
     switch (instruction) {
         case SK_OP_HALT:
             return debug_simple_instruction("HALT");
-        case SK_OP_RETURN:
-            return debug_simple_instruction("RETURN");
+        case SK_OP_DUMP:
+            return debug_simple_instruction("DUMP");
         case SK_OP_CONST:
-            return debug_simple_instruction("CONST");
+            return debug_const_instruction("CONST");
         default:
             return debug_simple_instruction("INVALID");
     }
