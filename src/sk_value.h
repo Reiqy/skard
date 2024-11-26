@@ -12,7 +12,7 @@ struct sk_value {
 };
 
 #define sk_as_number(value) value.as.number
-#define sk_number(value) (struct sk_value) { .as.number = (value) }
+#define sk_number_value(value) (struct sk_value) { .as.number = (value) }
 
 void sk_value_print(struct sk_value value);
 

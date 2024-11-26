@@ -25,9 +25,9 @@ static size_t debug_simple_instruction(const char *name)
     return 1;
 }
 
-static size_t debug_const_instruction(const char *name)
+static size_t debug_const_instruction()
 {
-    printf("%s", name);
+    printf("CONST");
     return 2;
 }
 
@@ -39,7 +39,17 @@ static size_t debug_instruction(uint8_t instruction)
         case SK_OP_DUMP:
             return debug_simple_instruction("DUMP");
         case SK_OP_CONST:
-            return debug_const_instruction("CONST");
+            return debug_const_instruction();
+        case SK_OP_NNEG:
+            return debug_simple_instruction("NNEG");
+        case SK_OP_NADD:
+            return debug_simple_instruction("NADD");
+        case SK_OP_NSUB:
+            return debug_simple_instruction("NSUB");
+        case SK_OP_NMUL:
+            return debug_simple_instruction("NMUL");
+        case SK_OP_NDIV:
+            return debug_simple_instruction("NDIV");
         default:
             return debug_simple_instruction("INVALID");
     }

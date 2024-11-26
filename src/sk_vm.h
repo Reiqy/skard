@@ -8,7 +8,14 @@
 enum sk_opcode {
     SK_OP_HALT,
     SK_OP_DUMP,
+
     SK_OP_CONST,
+
+    SK_OP_NNEG,
+    SK_OP_NADD,
+    SK_OP_NSUB,
+    SK_OP_NMUL,
+    SK_OP_NDIV,
 };
 
 struct sk_chunk {

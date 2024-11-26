@@ -11,7 +11,12 @@ int main(int argc, char **argv)
 
     sk_chunk_init(&c);
 
-    sk_chunk_add_const(&c, sk_number(4.2));
+    sk_chunk_add_const(&c, sk_number_value(6.9));
+    sk_chunk_add_const(&c, sk_number_value(4.2));
+    sk_chunk_add(&c, SK_OP_NADD);
+    sk_chunk_add_const(&c, sk_number_value(3.14));
+    sk_chunk_add(&c, SK_OP_NMUL);
+    sk_chunk_add(&c, SK_OP_NNEG);
     sk_chunk_add(&c, SK_OP_DUMP);
     sk_chunk_add(&c, SK_OP_HALT);
 

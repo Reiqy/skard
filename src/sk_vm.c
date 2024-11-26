@@ -89,7 +89,7 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 #define read_byte() *vm->ip++
 #define read_const() sk_value_array_get(&vm->chunk->constants, read_byte())
 #define push(value) sk_vm_stack_push(&vm->stack, value)
-#define pop(value) sk_vm_stack_pop(&vm->stack)
+#define pop() sk_vm_stack_pop(&vm->stack)
 
     for (;;) {
         switch (read_byte()) {
@@ -98,9 +98,40 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
             case SK_OP_DUMP:
                 sk_value_print(pop());
                 break;
+
             case SK_OP_CONST:
                 push(read_const());
                 break;
+
+            case SK_OP_NNEG: {
+                sk_number a = sk_as_number(pop());
+                push(sk_number_value(-a));
+                break;
+            }
+            case SK_OP_NADD: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_number_value(a + b));
+                break;
+            }
+            case SK_OP_NSUB: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_number_value(a - b));
+                break;
+            }
+            case SK_OP_NMUL: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_number_value(a * b));
+                break;
+            }
+            case SK_OP_NDIV: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_number_value(a / b));
+                break;
+            }
             default:
                 fprintf(stderr, "Invalid instruction.\n");
                 return SK_VM_ERR;
