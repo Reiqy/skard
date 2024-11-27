@@ -4,6 +4,35 @@
 
 #include "sk_utils.h"
 
+sk_number sk_number_from_string(const char *str, size_t length)
+{
+    sk_number number = 0.0;
+    size_t index = 0;
+    while (index < length && str[index] >= '0' && str[index] <= '9') {
+        int digit = str[index] - '0';
+        number = number * 10 + digit;
+        index++;
+    }
+
+    if (index == length) {
+        return number;
+    }
+
+    index++; // Skip decimal point
+
+    sk_number fraction = 0.0;
+    sk_number divisor = 1.0;
+    while (index < length) {
+        int digit = str[index] - '0';
+        fraction = fraction * 10 + digit;
+        divisor *= 10;
+        index++;
+    }
+
+    number += fraction / divisor;
+    return number;
+}
+
 void sk_value_print(struct sk_value value)
 {
     // Currently we only support numbers

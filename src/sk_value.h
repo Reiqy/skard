@@ -5,6 +5,8 @@
 
 typedef double sk_number;
 
+sk_number sk_number_from_string(const char *str, size_t length);
+
 struct sk_value {
     union {
         sk_number number;
