@@ -15,5 +15,7 @@ add_executable(skard
         src/sk_debug.c
         src/sk_debug.h
         src/sk_value.c
-        src/sk_value.h)
+        src/sk_value.h
+        src/sk_lexer.c
+        src/sk_lexer.h)
 target_compile_options(skard PRIVATE -Wall -Wextra -Wpedantic -Werror)
