@@ -23,9 +23,6 @@ static void ast_node_print_impl(const struct sk_ast_node *node)
             ast_node_print_impl(node->as.binary.right);
             printf(")");
             break;
-        case SK_AST_GROUPING:
-            ast_node_print_impl(node->as.grouping.expression);
-            break;
         default:
             break;
     }
@@ -39,7 +36,6 @@ void sk_ast_node_print(const struct sk_ast_node *node)
 
 static struct sk_ast_node *ast_node_new(void);
 static struct sk_ast_node *ast_literal_new(struct sk_token token);
-static struct sk_ast_node *ast_grouping_new(struct sk_ast_node *expression);
 static struct sk_ast_node *ast_unary_new(struct sk_token operator, struct sk_ast_node *expression);
 static struct sk_ast_node *ast_binary_new(struct sk_token operator, struct sk_ast_node *left, struct sk_ast_node *right);
 
@@ -60,19 +56,6 @@ static struct sk_ast_node *ast_literal_new(struct sk_token token)
     };
 
     return literal;
-}
-
-static struct sk_ast_node *ast_grouping_new(struct sk_ast_node *expression)
-{
-    struct sk_ast_node *grouping = ast_node_new();
-    *grouping = (struct sk_ast_node) {
-        .type = SK_AST_GROUPING,
-        .as.grouping = (struct sk_ast_grouping) {
-            .expression = expression,
-        }
-    };
-
-    return grouping;
 }
 
 static struct sk_ast_node *ast_unary_new(struct sk_token operator, struct sk_ast_node *expression)
@@ -221,7 +204,7 @@ static struct sk_ast_node *parse_grouping(struct sk_parser *parser)
 {
     struct sk_ast_node *expression = parse_expression(parser);
     consume(parser, SK_TOKEN_RPAREN, "Expected ')' after expression.\n");
-    return ast_grouping_new(expression);
+    return expression;
 }
 
 static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_node *left)
