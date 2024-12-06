@@ -11,6 +11,8 @@ enum sk_token_type {
     SK_TOKEN_LPAREN, SK_TOKEN_RPAREN,
 
     SK_TOKEN_PLUS, SK_TOKEN_MINUS, SK_TOKEN_STAR, SK_TOKEN_SLASH,
+
+    SK_TOKEN_PRINT,
 };
 
 struct sk_token {

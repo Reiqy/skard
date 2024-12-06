@@ -48,6 +48,9 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
     }
 
     switch (c) {
+        case '#':
+            // TODO: This is temporary to test statement parsing.
+            return make_token(lexer, SK_TOKEN_PRINT);
         case '(':
             return make_token(lexer, SK_TOKEN_LPAREN);
         case ')':

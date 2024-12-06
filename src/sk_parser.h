@@ -7,6 +7,7 @@ enum sk_ast_node_type {
     SK_AST_LITERAL,
     SK_AST_UNARY,
     SK_AST_BINARY,
+    SK_AST_PRINT,
 };
 
 struct sk_ast_literal {
@@ -24,12 +25,17 @@ struct sk_ast_binary {
     struct sk_ast_node *right;
 };
 
+struct sk_ast_print {
+    struct sk_ast_node *expression;
+};
+
 struct sk_ast_node {
     enum sk_ast_node_type type;
     union {
         struct sk_ast_literal literal;
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
+        struct sk_ast_print print;
     } as;
 };
 

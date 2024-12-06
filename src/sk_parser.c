@@ -1,27 +1,54 @@
 #include "sk_parser.h"
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "sk_utils.h"
 
-static void ast_node_print_impl(const struct sk_ast_node *node)
+static void print_indent(int depth)
+{
+    for (int i = 0; i < depth; i++) {
+        printf("  ");
+    }
+}
+
+static void print_parenthesized_expression(const struct sk_ast_node *node)
 {
     switch (node->type) {
         case SK_AST_LITERAL:
-            printf("%.*s", (int)node->as.literal.token.length, node->as.literal.token.start);
-        break;
+            printf("%.*s", (int) node->as.literal.token.length, node->as.literal.token.start);
+            break;
         case SK_AST_UNARY:
             printf("(");
-            printf("%.*s", (int)node->as.unary.operator.length, node->as.unary.operator.start);
-            ast_node_print_impl(node->as.unary.expression);
+            printf("%.*s", (int) node->as.unary.operator.length, node->as.unary.operator.start);
+            print_parenthesized_expression(node->as.unary.expression);
             printf(")");
             break;
         case SK_AST_BINARY:
             printf("(");
-            ast_node_print_impl(node->as.binary.left);
-            printf(" %.*s ", (int)node->as.binary.operator.length, node->as.binary.operator.start);
-            ast_node_print_impl(node->as.binary.right);
+            print_parenthesized_expression(node->as.binary.left);
+            printf(" %.*s ", (int) node->as.binary.operator.length, node->as.binary.operator.start);
+            print_parenthesized_expression(node->as.binary.right);
             printf(")");
+            break;
+        default:
+            fprintf(stderr, "Unexpected node type %d.", node->type);
+            break;
+    }
+}
+
+static void print_expression(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    print_parenthesized_expression(node);
+}
+
+static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
+{
+    switch (node->type) {
+        case SK_AST_PRINT:
+            printf("print\n");
+            print_expression(node->as.print.expression, depth + 1);
             break;
         default:
             break;
@@ -30,7 +57,7 @@ static void ast_node_print_impl(const struct sk_ast_node *node)
 
 void sk_ast_node_print(const struct sk_ast_node *node)
 {
-    ast_node_print_impl(node);
+    ast_node_print_impl(node, 0);
     printf("\n");
 }
 
@@ -38,6 +65,7 @@ static struct sk_ast_node *ast_node_new(void);
 static struct sk_ast_node *ast_literal_new(struct sk_token token);
 static struct sk_ast_node *ast_unary_new(struct sk_token operator, struct sk_ast_node *expression);
 static struct sk_ast_node *ast_binary_new(struct sk_token operator, struct sk_ast_node *left, struct sk_ast_node *right);
+static struct sk_ast_node *ast_print_new(struct sk_ast_node *expression);
 
 static struct sk_ast_node *ast_node_new(void)
 {
@@ -87,8 +115,26 @@ static struct sk_ast_node *ast_binary_new(struct sk_token operator, struct sk_as
     return binary;
 }
 
+static struct sk_ast_node *ast_print_new(struct sk_ast_node *expression)
+{
+    struct sk_ast_node *print = ast_node_new();
+    *print = (struct sk_ast_node) {
+        .type = SK_AST_PRINT,
+        .as.print = (struct sk_ast_print) {
+            .expression = expression,
+        }
+    };
+
+    return print;
+}
+
+static bool check(const struct sk_parser *parser, enum sk_token_type type);
+static bool match(struct sk_parser *parser, enum sk_token_type type);
 static void advance(struct sk_parser *parser);
 static void consume(struct sk_parser *parser, enum sk_token_type type, const char *message);
+
+static struct sk_ast_node *parse_statement(struct sk_parser *parser);
+static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
 
 enum precedence {
     PREC_NONE = 0,
@@ -116,9 +162,24 @@ void sk_parser_init(struct sk_parser *parser, const char *source)
 struct sk_ast_node *sk_parser_parse(struct sk_parser *parser)
 {
     advance(parser);
-    struct sk_ast_node *expression = parse_expression(parser);
+    struct sk_ast_node *statement = parse_statement(parser);
     consume(parser, SK_TOKEN_EOF, "Expected end of file.\n");
-    return expression;
+    return statement;
+}
+
+static bool check(const struct sk_parser *parser, enum sk_token_type type)
+{
+    return parser->current.type == type;
+}
+
+static bool match(struct sk_parser *parser, enum sk_token_type type)
+{
+    if (!check(parser, type)) {
+        return false;
+    }
+
+    advance(parser);
+    return true;
 }
 
 static void advance(struct sk_parser *parser)
@@ -131,13 +192,30 @@ static void advance(struct sk_parser *parser)
 
 static void consume(struct sk_parser *parser, enum sk_token_type type, const char *message)
 {
-    if (parser->current.type == type) {
+    if (check(parser, type)) {
         advance(parser);
         return;
     }
 
     // TODO: Delegate to error handling.
     fprintf(stderr, message);
+}
+
+static struct sk_ast_node *parse_statement(struct sk_parser *parser)
+{
+    if (match(parser, SK_TOKEN_PRINT)) {
+        return parse_print_statement(parser);
+    }
+
+    // TODO: Handle in a better way.
+    fprintf(stderr, "Expected statement.\n");
+    exit(EXIT_FAILURE);
+}
+
+static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
+{
+    struct sk_ast_node *expression = parse_expression(parser);
+    return ast_print_new(expression);
 }
 
 static enum precedence get_precedence(enum sk_token_type token_type)
