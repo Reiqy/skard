@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 
+import colorama
+
 def get_test_files():
     test_files = []
     try:
@@ -34,22 +36,22 @@ def generate(file, result):
 def test(file, result):
     print(f"Testing {file}")
     if result.returncode != 0:
-        print(f"Testing {file} finished with exit code {result.returncode}. Failed!")
+        print(f"{colorama.Fore.RED}[Failed]{colorama.Style.RESET_ALL} Testing {file} finished with exit code {result.returncode}.")
     try:
         with open(file + ".expect", "r") as test:
             read_test = test.read()
             if result.stdout != read_test:
-                print(f"Testing {file} finished. Failed!")
+                print(f"{colorama.Fore.RED}[Failed]{colorama.Style.RESET_ALL} Testing {file} finished with unexpected output.")
                 print("Expected:")
                 print(read_test)
                 print("Got:")
                 print(result.stdout)
                 return
-            print(f"Testing {file} finished. Ok!")
+            print(f"{colorama.Fore.GREEN}[Ok]{colorama.Style.RESET_ALL} Testing {file} finished.")
     except FileNotFoundError:
-        print(f"Testing {file} failed because {file + ".expect"} doesn't exist. It may need to be regenerated.")
+        print(f"{colorama.Fore.RED}[Failed]{colorama.Style.RESET_ALL} Testing {file} finished. Expect file {file + ".expect"} doesn't exist.")
     except Exception as e:
-        print(f"Testing {file} failed because {e}")
+        print(f"{colorama.Fore.RED}[Failed]{colorama.Style.RESET_ALL} Testing {file} finished. Unexpected error {e}.")
 
 def process(file):
     result = run(file)
@@ -61,6 +63,8 @@ def process(file):
         return
 
 if __name__ == "__main__":
+    colorama.init()
+
     if len(sys.argv) != 3:
         print(f"Error: Wrong usage", file=sys.stderr)
         exit(1)
