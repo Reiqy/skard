@@ -6,5 +6,6 @@
 #include "sk_value.h"
 #include "sk_lexer.h"
 #include "sk_parser.h"
+#include "sk_compiler.h"
 
 #endif //SKARD_SKARD_H

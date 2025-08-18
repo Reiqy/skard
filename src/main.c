@@ -77,7 +77,26 @@ static int file(const char *filename)
         return EXIT_FAILURE;
     }
 
-    // TODO: Not yet implemented.
+    struct sk_parser parser;
+    sk_parser_init(&parser, source);
+
+    struct sk_ast_node *ast = sk_parser_parse(&parser);
+
+    struct sk_chunk chunk;
+    sk_chunk_init(&chunk);
+
+    struct sk_compiler compiler;
+    sk_compiler_compile(&compiler, ast, &chunk);
+
+    struct sk_vm vm;
+    sk_vm_init(&vm);
+
+    sk_vm_run(&vm, &chunk);
+
+    sk_vm_free(&vm);
+
+    sk_chunk_free(&chunk);
+
     free(source);
     return EXIT_SUCCESS;
 }

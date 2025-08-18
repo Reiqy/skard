@@ -66,12 +66,12 @@ struct sk_value sk_vm_stack_pop(struct sk_vm_stack *stack)
 
 void sk_vm_init(struct sk_vm *vm)
 {
-    (void)vm;
+    sk_vm_stack_init(&vm->stack);
 }
 
 void sk_vm_free(struct sk_vm *vm)
 {
-    (void)vm;
+    sk_vm_stack_free(&vm->stack);
 }
 
 static enum sk_vm_result vm_loop(struct sk_vm *vm);
@@ -97,6 +97,8 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 return SK_VM_OK;
             case SK_OP_DUMP:
                 sk_value_print(pop());
+                printf("\n");
+                fflush(stdout);
                 break;
 
             case SK_OP_CONST:
