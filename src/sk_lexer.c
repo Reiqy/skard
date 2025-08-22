@@ -179,8 +179,16 @@ enum sk_token_type check_keyword(const struct sk_lexer *lexer, int offset, const
 enum sk_token_type classify_identifier(const struct sk_lexer *lexer)
 {
     switch (lexer->start[0]) {
+        case 'e':
+            return check_keyword(lexer, 1, "else", SK_TOKEN_ELSE);
+        case 'f':
+            return check_keyword(lexer, 1, "for", SK_TOKEN_FOR);
+        case 'i':
+            return check_keyword(lexer, 1, "if", SK_TOKEN_IF);
         case 'p':
             return check_keyword(lexer, 1, "print", SK_TOKEN_PRINT);
+        case 'w':
+            return check_keyword(lexer, 1, "while", SK_TOKEN_WHILE);
         default:
             break;
     }
