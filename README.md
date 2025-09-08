@@ -5,8 +5,10 @@
 
 Skard is (or rather will be) an interpreted statically type-checked language. It draws inspiration from C#, Rust and Lua.
 
-```
-print 1 + (2 - 3) * 4 + 5 / (6 - 8) * 9
+```rs
+fn main() {
+    print 1 + (2 - 3) * 4 + 5 / (6 - 8) * 9
+}
 ```
 
 ## Build instructions
