@@ -5,6 +5,33 @@
 
 #include "sk_utils.h"
 
+void sk_ast_node_array_init(struct sk_ast_node_array *array)
+{
+    array->nodes = NULL;
+    array->capacity = 0;
+    array->count = 0;
+}
+
+void sk_ast_node_array_free(struct sk_ast_node_array *array)
+{
+    sk_free(array->nodes);
+
+    sk_ast_node_array_init(array);
+}
+
+void sk_ast_node_array_add(struct sk_ast_node_array *array, struct sk_ast_node *node)
+{
+    if (array->count >= array->capacity) {
+        array->capacity = sk_grow(array->capacity);
+        array->nodes = sk_realloc(array->nodes, array->capacity);
+    }
+
+    array->nodes[array->count] = node;
+    array->count++;
+}
+
+static void ast_node_print_impl(const struct sk_ast_node *node, int depth);
+
 static void print_indent(int depth)
 {
     for (int i = 0; i < depth; i++) {
@@ -41,14 +68,57 @@ static void print_expression(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
     print_parenthesized_expression(node);
+    printf("\n");
+}
+
+static void print_block(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("{}\n");
+
+    for (size_t i = 0; i < node->as.block.contents.count; i++) {
+        ast_node_print_impl(node->as.block.contents.nodes[i], depth + 1);
+    }
+}
+
+static void print_print(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("print\n");
+    print_expression(node->as.print.expression, depth + 1);
+}
+
+static void print_fn(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("fn %.*s()\n", (int)node->as.fn.name.length, node->as.fn.name.start);
+    ast_node_print_impl(node->as.fn.body, depth + 1);
+}
+
+static void print_program(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("program:\n");
+
+    for (size_t i = 0; i < node->as.program.declarations.count; i++) {
+        ast_node_print_impl(node->as.program.declarations.nodes[i], depth + 1);
+    }
 }
 
 static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
 {
     switch (node->type) {
+        case SK_AST_BLOCK:
+            print_block(node, depth);
+            break;
         case SK_AST_PRINT:
-            printf("print\n");
-            print_expression(node->as.print.expression, depth + 1);
+            print_print(node, depth);
+            break;
+        case SK_AST_FN:
+            print_fn(node, depth);
+            break;
+        case SK_AST_PROGRAM:
+            print_program(node, depth);
             break;
         default:
             break;
@@ -58,14 +128,20 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
 void sk_ast_node_print(const struct sk_ast_node *node)
 {
     ast_node_print_impl(node, 0);
-    printf("\n");
 }
 
 static struct sk_ast_node *ast_node_new(void);
+
 static struct sk_ast_node *ast_literal_new(struct sk_token token);
 static struct sk_ast_node *ast_unary_new(struct sk_token operator, struct sk_ast_node *expression);
 static struct sk_ast_node *ast_binary_new(struct sk_token operator, struct sk_ast_node *left, struct sk_ast_node *right);
+
+static struct sk_ast_node *ast_block_new(void);
 static struct sk_ast_node *ast_print_new(struct sk_ast_node *expression);
+
+static struct sk_ast_node *ast_fn_new(struct sk_token name, struct sk_ast_node *body);
+
+static struct sk_ast_node *ast_program_new(void);
 
 static struct sk_ast_node *ast_node_new(void)
 {
@@ -80,7 +156,7 @@ static struct sk_ast_node *ast_literal_new(struct sk_token token)
         .type = SK_AST_LITERAL,
         .as.literal = (struct sk_ast_literal) {
             .token = token,
-        }
+        },
     };
 
     return literal;
@@ -94,7 +170,7 @@ static struct sk_ast_node *ast_unary_new(struct sk_token operator, struct sk_ast
         .as.unary = (struct sk_ast_unary) {
             .operator = operator,
             .expression = expression,
-        }
+        },
     };
 
     return unary;
@@ -109,10 +185,24 @@ static struct sk_ast_node *ast_binary_new(struct sk_token operator, struct sk_as
             .operator = operator,
             .left = left,
             .right = right,
-        }
+        },
     };
 
     return binary;
+}
+
+static struct sk_ast_node *ast_block_new(void)
+{
+    struct sk_ast_block inner = {0};
+    struct sk_ast_node *block = ast_node_new();
+    *block = (struct sk_ast_node) {
+        .type = SK_AST_BLOCK,
+        .as.block = inner,
+    };
+
+    sk_ast_node_array_init(&block->as.block.contents);
+
+    return block;
 }
 
 static struct sk_ast_node *ast_print_new(struct sk_ast_node *expression)
@@ -122,10 +212,38 @@ static struct sk_ast_node *ast_print_new(struct sk_ast_node *expression)
         .type = SK_AST_PRINT,
         .as.print = (struct sk_ast_print) {
             .expression = expression,
-        }
+        },
     };
 
     return print;
+}
+
+static struct sk_ast_node *ast_fn_new(struct sk_token name, struct sk_ast_node *body)
+{
+    struct sk_ast_node *fn = ast_node_new();
+    *fn = (struct sk_ast_node) {
+        .type = SK_AST_FN,
+        .as.fn = (struct sk_ast_fn) {
+            .name = name,
+            .body = body,
+        },
+    };
+
+    return fn;
+}
+
+static struct sk_ast_node *ast_program_new(void)
+{
+    struct sk_ast_program inner = {0};
+    struct sk_ast_node *program = ast_node_new();
+    *program = (struct sk_ast_node) {
+        .type = SK_AST_PROGRAM,
+        .as.program = inner,
+    };
+
+    sk_ast_node_array_init(&program->as.program.declarations);
+
+    return program;
 }
 
 static bool check(const struct sk_parser *parser, enum sk_token_type type);
@@ -133,7 +251,11 @@ static bool match(struct sk_parser *parser, enum sk_token_type type);
 static void advance(struct sk_parser *parser);
 static void consume(struct sk_parser *parser, enum sk_token_type type, const char *message);
 
+static struct sk_ast_node *parse_declaration(struct sk_parser *parser);
+static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser);
+
 static struct sk_ast_node *parse_statement(struct sk_parser *parser);
+static struct sk_ast_node *parse_block(struct sk_parser *parser);
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
 
 enum precedence {
@@ -162,9 +284,14 @@ void sk_parser_init(struct sk_parser *parser, const char *source)
 struct sk_ast_node *sk_parser_parse(struct sk_parser *parser)
 {
     advance(parser);
-    struct sk_ast_node *statement = parse_statement(parser);
-    consume(parser, SK_TOKEN_EOF, "Expected end of file.\n");
-    return statement;
+
+    struct sk_ast_node *program = ast_program_new();
+    while (!match(parser, SK_TOKEN_EOF)) {
+        struct sk_ast_node *declaration = parse_declaration(parser);
+        sk_ast_node_array_add(&program->as.program.declarations, declaration);
+    }
+
+    return program;
 }
 
 static bool check(const struct sk_parser *parser, enum sk_token_type type)
@@ -201,6 +328,27 @@ static void consume(struct sk_parser *parser, enum sk_token_type type, const cha
     fprintf(stderr, message);
 }
 
+static struct sk_ast_node *parse_declaration(struct sk_parser *parser)
+{
+    if (match(parser, SK_TOKEN_FN)) {
+        return parse_fn_declaration(parser);
+    }
+
+    // TODO: Handle in a better way.
+    fprintf(stderr, "Expected declaration.\n");
+    exit(EXIT_FAILURE);
+}
+
+static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
+{
+    consume(parser, SK_TOKEN_IDENTIFIER, "Expected identifier.\n");
+    struct sk_token name = parser->previous;
+    consume(parser, SK_TOKEN_LPAREN, "Expected '('.\n");
+    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.\n");
+    struct sk_ast_node *body = parse_block(parser);
+    return ast_fn_new(name, body);
+}
+
 static struct sk_ast_node *parse_statement(struct sk_parser *parser)
 {
     if (match(parser, SK_TOKEN_PRINT)) {
@@ -210,6 +358,20 @@ static struct sk_ast_node *parse_statement(struct sk_parser *parser)
     // TODO: Handle in a better way.
     fprintf(stderr, "Expected statement.\n");
     exit(EXIT_FAILURE);
+}
+
+static struct sk_ast_node *parse_block(struct sk_parser *parser)
+{
+    consume(parser, SK_TOKEN_LBRACE, "Expected '{'.\n");
+
+    struct sk_ast_node *block = ast_block_new();
+    while (!match(parser, SK_TOKEN_RBRACE)) {
+        // TODO: This is not finished. We want to allow declarations inside blocks as well.
+        struct sk_ast_node *statement = parse_statement(parser);
+        sk_ast_node_array_add(&block->as.block.contents, statement);
+    }
+
+    return block;
 }
 
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
