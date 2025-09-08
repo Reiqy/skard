@@ -1,6 +1,8 @@
 #ifndef SK_PARSER_H
 #define SK_PARSER_H
 
+#include <stdbool.h>
+
 #include "sk_lexer.h"
 
 struct sk_ast_node_array {
@@ -28,6 +30,9 @@ enum sk_ast_node_type {
 
     // Program
     SK_AST_PROGRAM,
+
+    // Error
+    SK_AST_ERR,
 };
 
 struct sk_ast_literal {
@@ -62,6 +67,10 @@ struct sk_ast_program {
     struct sk_ast_node_array declarations;
 };
 
+struct sk_ast_err {
+    const char *message;
+};
+
 struct sk_ast_node {
     enum sk_ast_node_type type;
     union {
@@ -72,6 +81,7 @@ struct sk_ast_node {
         struct sk_ast_block block;
         struct sk_ast_fn fn;
         struct sk_ast_program program;
+        struct sk_ast_err err;
     } as;
 };
 
@@ -81,6 +91,8 @@ struct sk_parser {
     struct sk_lexer lexer;
     struct sk_token current;
     struct sk_token previous;
+    bool has_error;
+    bool is_panic_mode;
 };
 
 void sk_parser_init(struct sk_parser *parser, const char *source);
