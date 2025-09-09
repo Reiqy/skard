@@ -5,142 +5,6 @@
 
 #include "sk_utils.h"
 
-void sk_ast_node_array_init(struct sk_ast_node_array *array)
-{
-    array->nodes = NULL;
-    array->capacity = 0;
-    array->count = 0;
-}
-
-void sk_ast_node_array_free(struct sk_ast_node_array *array)
-{
-    sk_free(array->nodes);
-
-    sk_ast_node_array_init(array);
-}
-
-void sk_ast_node_array_add(struct sk_ast_node_array *array, struct sk_ast_node *node)
-{
-    if (array->count >= array->capacity) {
-        array->capacity = sk_grow(array->capacity);
-        array->nodes = sk_realloc(array->nodes, array->capacity);
-    }
-
-    array->nodes[array->count] = node;
-    array->count++;
-}
-
-static void ast_node_print_impl(const struct sk_ast_node *node, int depth);
-
-static void print_indent(int depth)
-{
-    for (int i = 0; i < depth; i++) {
-        printf("  ");
-    }
-}
-
-static void print_parenthesized_expression(const struct sk_ast_node *node)
-{
-    switch (node->type) {
-        case SK_AST_LITERAL:
-            printf("%.*s", (int) node->as.literal.token.length, node->as.literal.token.start);
-            break;
-        case SK_AST_UNARY:
-            printf("(");
-            printf("%.*s", (int) node->as.unary.operator.length, node->as.unary.operator.start);
-            print_parenthesized_expression(node->as.unary.expression);
-            printf(")");
-            break;
-        case SK_AST_BINARY:
-            printf("(");
-            print_parenthesized_expression(node->as.binary.left);
-            printf(" %.*s ", (int) node->as.binary.operator.length, node->as.binary.operator.start);
-            print_parenthesized_expression(node->as.binary.right);
-            printf(")");
-            break;
-        default:
-            fprintf(stderr, "Unexpected node type %d.", node->type);
-            break;
-    }
-}
-
-static void print_expression(const struct sk_ast_node *node, int depth)
-{
-    print_indent(depth);
-    print_parenthesized_expression(node);
-    printf("\n");
-}
-
-static void print_null_node(int depth)
-{
-    print_indent(depth);
-    printf("ERROR\n");
-}
-
-static void print_block(const struct sk_ast_node *node, int depth)
-{
-    print_indent(depth);
-    printf("{}\n");
-
-    for (size_t i = 0; i < node->as.block.contents.count; i++) {
-        ast_node_print_impl(node->as.block.contents.nodes[i], depth + 1);
-    }
-}
-
-static void print_print(const struct sk_ast_node *node, int depth)
-{
-    print_indent(depth);
-    printf("print\n");
-    print_expression(node->as.print.expression, depth + 1);
-}
-
-static void print_fn(const struct sk_ast_node *node, int depth)
-{
-    print_indent(depth);
-    printf("fn %.*s()\n", (int)node->as.fn.name.length, node->as.fn.name.start);
-    ast_node_print_impl(node->as.fn.body, depth + 1);
-}
-
-static void print_program(const struct sk_ast_node *node, int depth)
-{
-    print_indent(depth);
-    printf("program:\n");
-
-    for (size_t i = 0; i < node->as.program.declarations.count; i++) {
-        ast_node_print_impl(node->as.program.declarations.nodes[i], depth + 1);
-    }
-}
-
-static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
-{
-    if (node == NULL) {
-        print_null_node(depth);
-        return;
-    }
-
-    switch (node->type) {
-        case SK_AST_BLOCK:
-            print_block(node, depth);
-            break;
-        case SK_AST_PRINT:
-            print_print(node, depth);
-            break;
-        case SK_AST_FN:
-            print_fn(node, depth);
-            break;
-        case SK_AST_PROGRAM:
-            print_program(node, depth);
-            break;
-        default:
-            break;
-    }
-}
-
-void sk_ast_node_print(const struct sk_ast_node *node)
-{
-    ast_node_print_impl(node, 0);
-}
-
 static struct sk_ast_node *ast_node_new(void);
 
 static struct sk_ast_node *ast_literal_new(struct sk_token token);
@@ -293,7 +157,7 @@ static struct sk_ast_node *parse_literal(const struct sk_parser *parser);
 void sk_parser_init(struct sk_parser *parser, const char *source)
 {
     sk_lexer_init(&parser->lexer, source);
-    parser->is_panic_mode = false;
+    parser->is_panic = false;
     parser->has_error = false;
 }
 
@@ -305,7 +169,11 @@ struct sk_ast_node *sk_parser_parse(struct sk_parser *parser)
     while (!match(parser, SK_TOKEN_EOF)) {
         const bool is_statement_allowed = false;
         struct sk_ast_node *declaration = parse_declaration(parser, is_statement_allowed);
-        sk_ast_node_array_add(&program->as.program.declarations, declaration);
+        if (declaration != NULL) {
+            sk_ast_node_array_add(&program->as.program.declarations, declaration);
+        }
+
+        synchronize(parser);
     }
 
     return program;
@@ -313,11 +181,11 @@ struct sk_ast_node *sk_parser_parse(struct sk_parser *parser)
 
 static void error(struct sk_parser *parser, const struct sk_token *token, const char *message)
 {
-    if (parser->is_panic_mode) {
+    if (parser->is_panic) {
         return;
     }
 
-    parser->is_panic_mode = true;
+    parser->is_panic = true;
     parser->has_error = true;
 
     fprintf(stderr, "[line %zu] Error: %s\n", token->line, message);
@@ -325,12 +193,14 @@ static void error(struct sk_parser *parser, const struct sk_token *token, const 
 
 static void synchronize(struct sk_parser *parser)
 {
-    parser->is_panic_mode = false;
+    if (!parser->is_panic) {
+        return;
+    }
+
+    parser->is_panic = false;
     while (parser->current.type != SK_TOKEN_EOF) {
         switch (parser->current.type) {
             case SK_TOKEN_FN:
-            case SK_TOKEN_PRINT:
-            case SK_TOKEN_LBRACE:
                 return;
 
             default:
@@ -391,7 +261,6 @@ static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_s
     }
 
     error(parser, &parser->current, "Expected declaration.");
-    synchronize(parser);
     return NULL;
 }
 
@@ -416,7 +285,6 @@ static struct sk_ast_node *parse_statement(struct sk_parser *parser)
     }
 
     error(parser, &parser->current, "Expected statement.");
-    synchronize(parser);
     return NULL;
 }
 
@@ -428,6 +296,10 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser)
     while (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
         const bool is_statement_allowed = true;
         struct sk_ast_node *statement = parse_declaration(parser, is_statement_allowed);
+        if (statement == NULL) {
+            return NULL;
+        }
+
         sk_ast_node_array_add(&block->as.block.contents, statement);
     }
 
@@ -484,8 +356,7 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser)
         case SK_TOKEN_NUMBER:
             return parse_literal(parser);
         default:
-            // TODO: Can this error ever happen?
-            error(parser, &parser->previous, "Expected prefix operation.");
+            error(parser, &parser->previous, "Expected prefix expression.");
             return NULL;
     }
 }
@@ -500,8 +371,7 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
         case SK_TOKEN_SLASH:
             return parse_binary(parser, left);
         default:
-            // TODO: Can this error ever happen?
-            error(parser, &parser->previous, "Expected binary operation.");
+            error(parser, &parser->previous, "Expected binary expression.");
             return NULL;
     }
 }
