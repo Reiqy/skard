@@ -98,6 +98,7 @@ struct sk_ast_node_arena {
     size_t capacity;
     size_t count;
     size_t current_block_index;
+    size_t initial_block_capacity;
     size_t block_capacity;
 };
 

@@ -158,7 +158,8 @@ void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, size_t block_capaci
     arena->capacity = 0;
     arena->count = 0;
     arena->current_block_index = 0;
-    arena->block_capacity = block_capacity == 0 ? 8 : block_capacity;
+    arena->initial_block_capacity = block_capacity == 0 ? 8 : block_capacity;
+    arena->block_capacity = arena->initial_block_capacity;
 }
 
 void sk_ast_node_arena_free(struct sk_ast_node_arena *arena)
@@ -169,7 +170,7 @@ void sk_ast_node_arena_free(struct sk_ast_node_arena *arena)
 
     sk_free(arena->blocks);
 
-    sk_ast_node_arena_init(arena, arena->block_capacity);
+    sk_ast_node_arena_init(arena, arena->initial_block_capacity);
 }
 
 // TODO: Consider improving this function.
