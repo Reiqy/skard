@@ -9,6 +9,9 @@ static void emit(struct sk_compiler *compiler, uint8_t byte);
 static void emit_halt(struct sk_compiler *compiler);
 static void emit_const(struct sk_compiler *compiler, struct sk_value constant);
 
+static void compile_program(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_declaration(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_binary(struct sk_compiler *compiler, struct sk_ast_node *node);
@@ -21,7 +24,7 @@ bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node,
 {
     compiler->current_chunk = chunk;
 
-    compile_statement(compiler, node);
+    compile_program(compiler, node);
     emit_halt(compiler);
     return true;
 }
@@ -39,6 +42,32 @@ static void emit_halt(struct sk_compiler *compiler)
 static void emit_const(struct sk_compiler *compiler, struct sk_value constant)
 {
     sk_chunk_add_const(compiler->current_chunk, constant);
+}
+
+static void compile_program(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_program *program = &node->as.program;
+    for (size_t i = 0; i < program->declarations.count; i++) {
+        compile_declaration(compiler, program->declarations.nodes[i]);
+        // TODO: Only a single declaration is allowed for now.
+        break;
+    }
+}
+
+static void compile_declaration(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    if (node->type == SK_AST_FN) {
+        compile_function(compiler, node);
+    }
+}
+
+static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_fn *fn = &node->as.fn;
+    struct sk_ast_block *body = &fn->body->as.block;
+    for (size_t i = 0; i < body->contents.count; i++) {
+        compile_statement(compiler, body->contents.nodes[i]);
+    }
 }
 
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
