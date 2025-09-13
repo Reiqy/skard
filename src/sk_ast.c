@@ -151,3 +151,54 @@ static void print_indent(int depth)
         printf("  ");
     }
 }
+
+void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, size_t block_capacity)
+{
+    arena->blocks = NULL;
+    arena->capacity = 0;
+    arena->count = 0;
+    arena->current_block_index = 0;
+    arena->block_capacity = block_capacity == 0 ? 8 : block_capacity;
+}
+
+void sk_ast_node_arena_free(struct sk_ast_node_arena *arena)
+{
+    for (size_t i = 0; i < arena->count; i++) {
+        sk_free(arena->blocks[i].nodes);
+    }
+
+    sk_free(arena->blocks);
+
+    sk_ast_node_arena_init(arena, arena->block_capacity);
+}
+
+// TODO: Consider improving this function.
+struct sk_ast_node *sk_ast_node_arena_alloc(struct sk_ast_node_arena *arena)
+{
+    if (arena->current_block_index >= arena->count) {
+        if (arena->count >= arena->capacity) {
+            arena->capacity = sk_grow(arena->capacity);
+            arena->blocks = sk_realloc(arena->blocks, arena->capacity);
+        }
+
+        struct sk_ast_node_arena_block *current_block = arena->blocks + arena->current_block_index;
+        *current_block = (struct sk_ast_node_arena_block) {
+            .nodes = NULL,
+            .count = 0,
+            .capacity = arena->block_capacity,
+        };
+
+        current_block->nodes = sk_realloc(current_block->nodes, current_block->capacity);
+        arena->block_capacity = sk_grow(arena->block_capacity);
+        arena->count++;
+    }
+
+    struct sk_ast_node_arena_block *current_block = arena->blocks + arena->current_block_index;
+    struct sk_ast_node *result = &current_block->nodes[current_block->count++];
+
+    if (current_block->count >= current_block->capacity) {
+        arena->current_block_index++;
+    }
+
+    return result;
+}

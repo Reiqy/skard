@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "skard.h"
 
@@ -88,6 +89,8 @@ static int file(const char *filename)
     struct sk_compiler compiler;
     sk_compiler_compile(&compiler, ast, &chunk);
 
+    sk_parser_free(&parser);
+
     struct sk_vm vm;
     sk_vm_init(&vm);
 
@@ -111,8 +114,11 @@ static int ast(const char *filename)
     struct sk_parser parser;
     sk_parser_init(&parser, source);
 
-    struct sk_ast_node *node = sk_parser_parse(&parser);
+    const struct sk_ast_node *node = sk_parser_parse(&parser);
+
     sk_ast_node_print(node);
+
+    sk_parser_free(&parser);
 
     free(source);
     return EXIT_SUCCESS;

@@ -87,4 +87,22 @@ struct sk_ast_node {
 
 void sk_ast_node_print(const struct sk_ast_node *node);
 
+struct sk_ast_node_arena_block {
+    struct sk_ast_node *nodes;
+    size_t capacity;
+    size_t count;
+};
+
+struct sk_ast_node_arena {
+    struct sk_ast_node_arena_block *blocks;
+    size_t capacity;
+    size_t count;
+    size_t current_block_index;
+    size_t block_capacity;
+};
+
+void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, size_t block_capacity);
+void sk_ast_node_arena_free(struct sk_ast_node_arena *arena);
+struct sk_ast_node *sk_ast_node_arena_alloc(struct sk_ast_node_arena *arena);
+
 #endif //SKARD_SK_AST_H

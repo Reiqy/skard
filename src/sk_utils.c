@@ -1,5 +1,6 @@
 #include "sk_utils.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 
 void *sk_reallocate(void *ptr, size_t new_size)
