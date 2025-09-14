@@ -23,6 +23,7 @@ enum sk_ast_node_type {
 
     // Statements
     SK_AST_BLOCK,
+    SK_AST_IF,
     SK_AST_PRINT,
 
     // Declarations
@@ -48,6 +49,11 @@ struct sk_ast_binary {
     struct sk_token operator;
     struct sk_ast_node *left;
     struct sk_ast_node *right;
+};
+
+struct sk_ast_if {
+    struct sk_ast_node *condition;
+    struct sk_ast_node *body;
 };
 
 struct sk_ast_print {
@@ -77,6 +83,7 @@ struct sk_ast_node {
         struct sk_ast_literal literal;
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
+        struct sk_ast_if ifn;
         struct sk_ast_print print;
         struct sk_ast_block block;
         struct sk_ast_fn fn;

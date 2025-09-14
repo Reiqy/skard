@@ -26,6 +26,8 @@ static char advance(struct sk_lexer *lexer);
 static char peek(const struct sk_lexer *lexer);
 static char peek_next(const struct sk_lexer *lexer);
 
+static bool match(struct sk_lexer *lexer, char expected);
+
 static void skip_whitespace(struct sk_lexer *lexer);
 
 enum sk_token_type check_keyword(const struct sk_lexer *lexer, int offset, const char *keyword, enum sk_token_type type);
@@ -70,6 +72,14 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
             return make_token(lexer, SK_TOKEN_STAR);
         case '/':
             return make_token(lexer, SK_TOKEN_SLASH);
+        case '<':
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_LESS_EQ : SK_TOKEN_LESS);
+        case '>':
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_GREATER : SK_TOKEN_GREATER_EQ);
+        case '=':
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_ASSIGN : SK_TOKEN_EQUAL);
+        case '!':
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_NOT : SK_TOKEN_NOT_EQUAL);
         default:
             break;
     }
@@ -154,6 +164,20 @@ static char peek_next(const struct sk_lexer *lexer)
     }
 
     return lexer->current[1];
+}
+
+static bool match(struct sk_lexer *lexer, char expected)
+{
+    if (is_at_eof(lexer)) {
+        return false;
+    }
+
+    if (peek(lexer) != expected) {
+        return false;
+    }
+
+    advance(lexer);
+    return true;
 }
 
 static void skip_whitespace(struct sk_lexer *lexer)
