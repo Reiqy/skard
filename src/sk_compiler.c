@@ -32,6 +32,7 @@ static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node
 
 static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_number(struct sk_compiler *compiler, struct sk_ast_literal *literal);
+static void compile_string(struct sk_compiler *compiler, struct sk_ast_literal *literal);
 
 bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_chunk *chunk)
 {
@@ -284,6 +285,9 @@ static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *no
         case SK_TOKEN_NUMBER:
             compile_number(compiler, &node->as.literal);
             break;
+        case SK_TOKEN_STRING:
+            compile_string(compiler, &node->as.literal);
+            break;
         default:
             fprintf(stderr, "Unexpected.\n");
     }
@@ -294,4 +298,11 @@ static void compile_number(struct sk_compiler *compiler, struct sk_ast_literal *
     sk_number number = sk_number_from_string(literal->token.start, literal->token.length);
     struct sk_value number_value = sk_number_value(number);
     emit_const(compiler, number_value);
+}
+
+static void compile_string(struct sk_compiler *compiler, struct sk_ast_literal *literal)
+{
+    struct sk_value string_value = sk_object_value(sk_object_string_from_chars(
+        literal->token.start + 1, literal->token.length - 2));
+    emit_const(compiler, string_value);
 }

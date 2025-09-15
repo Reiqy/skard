@@ -414,6 +414,7 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser)
         case SK_TOKEN_NOT:
             return parse_unary(parser);
         case SK_TOKEN_NUMBER:
+        case SK_TOKEN_STRING:
         case SK_TOKEN_TRUE:
         case SK_TOKEN_FALSE:
             return parse_literal(parser);

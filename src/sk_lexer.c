@@ -30,10 +30,12 @@ static bool match(struct sk_lexer *lexer, char expected);
 
 static void skip_whitespace(struct sk_lexer *lexer);
 
-enum sk_token_type check_keyword(const struct sk_lexer *lexer, int offset, const char *keyword, enum sk_token_type type);
+enum sk_token_type check_keyword(const struct sk_lexer *lexer, int offset, const char *keyword,
+                                 enum sk_token_type type);
 enum sk_token_type classify_identifier(const struct sk_lexer *lexer);
 
 static struct sk_token scan_number(struct sk_lexer *lexer);
+static struct sk_token scan_string(struct sk_lexer *lexer);
 static struct sk_token scan_identifier(struct sk_lexer *lexer);
 
 struct sk_token sk_lexer_next(struct sk_lexer *lexer)
@@ -56,6 +58,8 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
     }
 
     switch (c) {
+        case '"':
+            return scan_string(lexer);
         case '(':
             return make_token(lexer, SK_TOKEN_LPAREN);
         case ')':
@@ -268,6 +272,21 @@ static struct sk_token scan_number(struct sk_lexer *lexer)
     }
 
     return make_token(lexer, SK_TOKEN_NUMBER);
+}
+
+// TODO: Implement string interpolation.
+static struct sk_token scan_string(struct sk_lexer *lexer)
+{
+    while (peek(lexer) != '"' && !is_at_eof(lexer)) {
+        advance(lexer);
+    }
+
+    if (is_at_eof(lexer)) {
+        return make_token_err(lexer, "Unterminated string.");
+    }
+
+    advance(lexer);
+    return make_token(lexer, SK_TOKEN_STRING);
 }
 
 static struct sk_token scan_identifier(struct sk_lexer *lexer)

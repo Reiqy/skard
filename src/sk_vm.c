@@ -106,7 +106,6 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
             case SK_OP_DUMP:
                 sk_value_print(pop());
                 printf("\n");
-                fflush(stdout);
                 break;
 
             case SK_OP_POP:
