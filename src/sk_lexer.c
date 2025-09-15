@@ -75,11 +75,23 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
         case '<':
             return make_token(lexer, match(lexer, '=') ? SK_TOKEN_LESS_EQ : SK_TOKEN_LESS);
         case '>':
-            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_GREATER : SK_TOKEN_GREATER_EQ);
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_GREATER_EQ : SK_TOKEN_GREATER);
         case '=':
-            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_ASSIGN : SK_TOKEN_EQUAL);
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_EQUAL : SK_TOKEN_ASSIGN);
         case '!':
-            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_NOT : SK_TOKEN_NOT_EQUAL);
+            return make_token(lexer, match(lexer, '=') ? SK_TOKEN_NOT_EQUAL : SK_TOKEN_NOT);
+        case '|':
+            if (match(lexer, '|')) {
+                return make_token(lexer, SK_TOKEN_OR);
+            }
+
+            break;
+        case '&':
+            if (match(lexer, '&')) {
+                return make_token(lexer, SK_TOKEN_AND);
+            }
+
+            break;
         default:
             break;
     }

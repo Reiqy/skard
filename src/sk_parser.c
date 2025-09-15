@@ -145,10 +145,14 @@ static struct sk_ast_node *parse_if_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
 
 enum precedence {
-    PREC_NONE = 0,
-    PREC_ADDITIVE = 1,
-    PREC_MULTIPLICATIVE = 2,
-    PREC_UNARY = 3,
+    PREC_NONE,
+    PREC_OR,
+    PREC_AND,
+    PREC_EQUALITY,
+    PREC_COMPARISON,
+    PREC_ADDITIVE,
+    PREC_MULTIPLICATIVE,
+    PREC_UNARY,
 };
 
 static enum precedence get_precedence(enum sk_token_type token_type);
@@ -345,6 +349,18 @@ static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
 static enum precedence get_precedence(enum sk_token_type token_type)
 {
     switch (token_type) {
+        case SK_TOKEN_OR:
+            return PREC_OR;
+        case SK_TOKEN_AND:
+            return PREC_AND;
+        case SK_TOKEN_EQUAL:
+        case SK_TOKEN_NOT_EQUAL:
+            return PREC_EQUALITY;
+        case SK_TOKEN_LESS:
+        case SK_TOKEN_LESS_EQ:
+        case SK_TOKEN_GREATER:
+        case SK_TOKEN_GREATER_EQ:
+            return PREC_COMPARISON;
         case SK_TOKEN_PLUS:
         case SK_TOKEN_MINUS:
             return PREC_ADDITIVE;
@@ -358,7 +374,7 @@ static enum precedence get_precedence(enum sk_token_type token_type)
 
 static struct sk_ast_node *parse_expression(struct sk_parser *parser)
 {
-    return parse_pratt(parser, PREC_ADDITIVE);
+    return parse_pratt(parser, PREC_OR);
 }
 
 static struct sk_ast_node *parse_pratt(struct sk_parser *parser, enum precedence precedence)
@@ -380,6 +396,7 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser)
             return parse_grouping(parser);
         case SK_TOKEN_PLUS:
         case SK_TOKEN_MINUS:
+        case SK_TOKEN_NOT:
             return parse_unary(parser);
         case SK_TOKEN_NUMBER:
             return parse_literal(parser);
@@ -397,6 +414,12 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
         case SK_TOKEN_MINUS:
         case SK_TOKEN_STAR:
         case SK_TOKEN_SLASH:
+        case SK_TOKEN_LESS:
+        case SK_TOKEN_LESS_EQ:
+        case SK_TOKEN_GREATER:
+        case SK_TOKEN_GREATER_EQ:
+        case SK_TOKEN_OR:
+        case SK_TOKEN_AND:
             return parse_binary(parser, left);
         default:
             error(parser, &parser->previous, "Expected binary expression.");
