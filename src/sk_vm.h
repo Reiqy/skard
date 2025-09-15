@@ -9,6 +9,8 @@ enum sk_opcode {
     SK_OP_HALT,
     SK_OP_DUMP,
 
+    SK_OP_POP,
+
     SK_OP_CONST,
 
     SK_OP_NNEG,
@@ -16,6 +18,18 @@ enum sk_opcode {
     SK_OP_NSUB,
     SK_OP_NMUL,
     SK_OP_NDIV,
+
+    SK_OP_NLESS,
+    SK_OP_NGREATER,
+    SK_OP_NEQUAL,
+
+    SK_OP_TRUE,
+    SK_OP_FALSE,
+    SK_OP_NOT,
+
+    SK_OP_JMP,
+    SK_OP_JMP_TRUE,
+    SK_OP_JMP_FALSE,
 };
 
 struct sk_chunk {
@@ -41,6 +55,7 @@ void sk_vm_stack_init(struct sk_vm_stack *stack);
 void sk_vm_stack_free(struct sk_vm_stack *stack);
 void sk_vm_stack_push(struct sk_vm_stack *stack, struct sk_value value);
 struct sk_value sk_vm_stack_pop(struct sk_vm_stack *stack);
+struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, int depth);
 
 struct sk_vm {
     struct sk_vm_stack stack;

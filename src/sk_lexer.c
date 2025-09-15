@@ -80,15 +80,15 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
             return make_token(lexer, match(lexer, '=') ? SK_TOKEN_EQUAL : SK_TOKEN_ASSIGN);
         case '!':
             return make_token(lexer, match(lexer, '=') ? SK_TOKEN_NOT_EQUAL : SK_TOKEN_NOT);
-        case '|':
-            if (match(lexer, '|')) {
-                return make_token(lexer, SK_TOKEN_OR);
-            }
-
-            break;
         case '&':
             if (match(lexer, '&')) {
                 return make_token(lexer, SK_TOKEN_AND);
+            }
+
+            break;
+        case '|':
+            if (match(lexer, '|')) {
+                return make_token(lexer, SK_TOKEN_OR);
             }
 
             break;

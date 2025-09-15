@@ -64,6 +64,11 @@ struct sk_value sk_vm_stack_pop(struct sk_vm_stack *stack)
     return *stack->top;
 }
 
+struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, int depth)
+{
+    return stack->top[-depth - 1];
+}
+
 void sk_vm_init(struct sk_vm *vm)
 {
     sk_vm_stack_init(&vm->stack);
@@ -88,8 +93,11 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 {
 #define read_byte() *vm->ip++
 #define read_const() sk_value_array_get(&vm->chunk->constants, read_byte())
+#define read_short() (vm->ip += 2, (uint16_t)(vm->ip[-2] << 8 | vm->ip[-1]))
+
 #define push(value) sk_vm_stack_push(&vm->stack, value)
 #define pop() sk_vm_stack_pop(&vm->stack)
+#define peek(depth) sk_vm_stack_peek(&vm->stack, (depth))
 
     for (;;) {
         switch (read_byte()) {
@@ -99,6 +107,10 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 sk_value_print(pop());
                 printf("\n");
                 fflush(stdout);
+                break;
+
+            case SK_OP_POP:
+                pop();
                 break;
 
             case SK_OP_CONST:
@@ -134,6 +146,63 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 push(sk_number_value(a / b));
                 break;
             }
+
+            case SK_OP_NLESS: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_boolean_value(a < b));
+                break;
+            }
+            case SK_OP_NGREATER: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_boolean_value(a > b));
+                break;
+            }
+            case SK_OP_NEQUAL: {
+                sk_number b = sk_as_number(pop());
+                sk_number a = sk_as_number(pop());
+                push(sk_boolean_value(a == b));
+                break;
+            }
+
+            case SK_OP_TRUE: {
+                push(sk_boolean_true);
+                break;
+            }
+            case SK_OP_FALSE: {
+                push(sk_boolean_false);
+                break;
+            }
+            case SK_OP_NOT: {
+                sk_bool a = sk_as_boolean(pop());
+                push(sk_boolean_value(!a));
+                break;
+            }
+
+            case SK_OP_JMP: {
+                uint16_t offset = read_short();
+                vm->ip += offset;
+                break;
+            }
+            case SK_OP_JMP_TRUE: {
+                uint16_t offset = read_short();
+                sk_bool a = sk_as_boolean(peek(0));
+                if (a) {
+                    vm->ip += offset;
+                }
+
+                break;
+            }
+            case SK_OP_JMP_FALSE: {
+                uint16_t offset = read_short();
+                sk_bool a = sk_as_boolean(peek(0));
+                if (!a) {
+                    vm->ip += offset;
+                }
+
+                break;
+            }
             default:
                 fprintf(stderr, "Invalid instruction.\n");
                 return SK_VM_ERR;
@@ -142,6 +211,7 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 
 #undef pop
 #undef push
+#undef read_short
 #undef read_const
 #undef read_byte
 }

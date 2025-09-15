@@ -10,7 +10,11 @@ static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_tok
 static struct sk_ast_node *ast_binary_new(struct sk_parser *parser, struct sk_token operator, struct sk_ast_node *left, struct sk_ast_node *right);
 
 static struct sk_ast_node *ast_block_new(struct sk_parser *parser);
-static struct sk_ast_node *ast_if_new(struct sk_parser *parser, struct sk_ast_node *condition, struct sk_ast_node *body);
+static struct sk_ast_node *ast_if_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *condition,
+    struct sk_ast_node *then_branch,
+    struct sk_ast_node *else_branch);
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *expression);
 
 static struct sk_ast_node *ast_fn_new(struct sk_parser *parser, struct sk_token name, struct sk_ast_node *body);
@@ -73,14 +77,19 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
     return block;
 }
 
-static struct sk_ast_node *ast_if_new(struct sk_parser *parser, struct sk_ast_node *condition, struct sk_ast_node *body)
+static struct sk_ast_node *ast_if_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *condition,
+    struct sk_ast_node *then_branch,
+    struct sk_ast_node *else_branch)
 {
     struct sk_ast_node *ifn = sk_ast_node_arena_alloc(&parser->arena);
     *ifn = (struct sk_ast_node) {
         .type = SK_AST_IF,
         .as.ifn = (struct sk_ast_if) {
             .condition = condition,
-            .body = body,
+            .then_branch = then_branch,
+            .else_branch = else_branch,
         }
     };
 
@@ -284,10 +293,10 @@ static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_s
 
 static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
 {
-    consume(parser, SK_TOKEN_IDENTIFIER, "Expected identifier.\n");
+    consume(parser, SK_TOKEN_IDENTIFIER, "Expected identifier.");
     struct sk_token name = parser->previous;
-    consume(parser, SK_TOKEN_LPAREN, "Expected '('.\n");
-    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.\n");
+    consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
+    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
     struct sk_ast_node *body = parse_block(parser);
     return ast_fn_new(parser, name, body);
 }
@@ -312,7 +321,7 @@ static struct sk_ast_node *parse_statement(struct sk_parser *parser)
 
 static struct sk_ast_node *parse_block(struct sk_parser *parser)
 {
-    consume(parser, SK_TOKEN_LBRACE, "Expected '{'.\n");
+    consume(parser, SK_TOKEN_LBRACE, "Expected '{'.");
 
     struct sk_ast_node *block = ast_block_new(parser);
     while (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
@@ -325,18 +334,24 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser)
         sk_ast_node_array_add(&block->as.block.contents, statement);
     }
 
-    consume(parser, SK_TOKEN_RBRACE, "Expected '}'.\n");
+    consume(parser, SK_TOKEN_RBRACE, "Expected '}'.");
     return block;
 }
 
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_IF, "Expected 'if'.");
-    consume(parser, SK_TOKEN_LPAREN, "Expected '('.\n");
+    consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
     struct sk_ast_node *condition = parse_expression(parser);
-    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.\n");
-    struct sk_ast_node *body = parse_block(parser);
-    return ast_if_new(parser, condition, body);
+    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
+    struct sk_ast_node *then_branch = parse_statement(parser);
+
+    if (!match(parser, SK_TOKEN_ELSE)) {
+        return ast_if_new(parser, condition, then_branch, NULL);
+    }
+
+    struct sk_ast_node *else_branch = parse_statement(parser);
+    return ast_if_new(parser, condition, then_branch, else_branch);
 }
 
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
@@ -432,7 +447,7 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
 static struct sk_ast_node *parse_grouping(struct sk_parser *parser)
 {
     struct sk_ast_node *expression = parse_expression(parser);
-    consume(parser, SK_TOKEN_RPAREN, "Expected ')' after expression.\n");
+    consume(parser, SK_TOKEN_RPAREN, "Expected ')' after expression.");
     return expression;
 }
 

@@ -95,7 +95,7 @@ static void print_if(const struct sk_ast_node *node, int depth)
     print_indent(depth);
     printf("if\n");
     print_expression(node->as.ifn.condition, depth + 1);
-    ast_node_print_impl(node->as.ifn.body, depth + 1);
+    ast_node_print_impl(node->as.ifn.then_branch, depth + 1);
 }
 
 static void print_print(const struct sk_ast_node *node, int depth)

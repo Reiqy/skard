@@ -53,7 +53,8 @@ struct sk_ast_binary {
 
 struct sk_ast_if {
     struct sk_ast_node *condition;
-    struct sk_ast_node *body;
+    struct sk_ast_node *then_branch;
+    struct sk_ast_node *else_branch;
 };
 
 struct sk_ast_print {

@@ -7,7 +7,15 @@ Skard is (or rather will be) an interpreted statically type-checked language. It
 
 ```rs
 fn main() {
-    print 1 + (2 - 3) * 4 + 5 / (6 - 8) * 9
+    if ((10 > 5) && (10 <= -14)) {
+        print 1 + (2 - 3) * 4 + 5 / (6 - 8) * 9
+    } else if (true || false) {
+        print 1 + 5 * 5
+    } else {
+        print 0
+    }
+    
+    print 42
 }
 ```
 

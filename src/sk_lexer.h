@@ -23,7 +23,7 @@ enum sk_token_type {
     SK_TOKEN_LESS, SK_TOKEN_LESS_EQ,
     SK_TOKEN_GREATER, SK_TOKEN_GREATER_EQ,
     SK_TOKEN_EQUAL, SK_TOKEN_NOT_EQUAL,
-    SK_TOKEN_OR, SK_TOKEN_AND,
+    SK_TOKEN_AND, SK_TOKEN_OR,
 };
 
 struct sk_token {
