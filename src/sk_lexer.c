@@ -224,6 +224,8 @@ enum sk_token_type classify_identifier(const struct sk_lexer *lexer)
         case 'f':
             if (lexer->current - lexer->start > 1) {
                 switch (lexer->start[1]) {
+                    case 'a':
+                        return check_keyword(lexer, 2, "false", SK_TOKEN_FALSE);
                     case 'n':
                         return check_keyword(lexer, 2, "fn", SK_TOKEN_FN);
                     case 'o':
@@ -240,6 +242,8 @@ enum sk_token_type classify_identifier(const struct sk_lexer *lexer)
             return check_keyword(lexer, 1, "print", SK_TOKEN_PRINT);
         case 'r':
             return check_keyword(lexer, 1, "return", SK_TOKEN_RETURN);
+        case 't':
+            return check_keyword(lexer, 1, "true", SK_TOKEN_TRUE);
         case 'w':
             return check_keyword(lexer, 1, "while", SK_TOKEN_WHILE);
         default:
