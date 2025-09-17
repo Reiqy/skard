@@ -36,7 +36,7 @@ static size_t debug_instruction(uint8_t instruction)
     switch (instruction) {
         case SK_OP_HALT:
             return debug_simple_instruction("HALT");
-        case SK_OP_DUMP:
+        case SK_OP_PRINT:
             return debug_simple_instruction("DUMP");
         case SK_OP_CONST:
             return debug_const_instruction();

@@ -103,10 +103,38 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
         switch (read_byte()) {
             case SK_OP_HALT:
                 return SK_VM_OK;
-            case SK_OP_DUMP:
-                sk_value_print(pop());
+            case SK_OP_PRINT: {
+                // TODO: Eventually remove this temporary code.
+                const struct sk_object_string *template = sk_as_string(pop());
+                for (size_t i = 0; i < template->length; i++) {
+                    char c = template->chars[i];
+                    if (c == '%') {
+                        // The following line is safe because the char on length + 1 is '\0'.
+                        char next_c = template->chars[++i];
+                        switch (next_c) {
+                            case 'n':
+                                sk_number_print(pop());
+                                break;
+                            case 'b':
+                                sk_boolean_print(pop());
+                                break;
+                            case 's':
+                                sk_string_print(pop());
+                                break;
+                            default:
+                                printf("INVALID");
+                                break;
+                        }
+
+                        continue;
+                    }
+
+                    printf("%c", c);
+                }
+
                 printf("\n");
                 break;
+            }
 
             case SK_OP_POP:
                 pop();

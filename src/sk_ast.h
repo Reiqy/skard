@@ -21,6 +21,8 @@ enum sk_ast_node_type {
     SK_AST_UNARY,
     SK_AST_BINARY,
 
+    SK_AST_ARGS,
+
     // Statements
     SK_AST_BLOCK,
     SK_AST_IF,
@@ -51,6 +53,14 @@ struct sk_ast_binary {
     struct sk_ast_node *right;
 };
 
+struct sk_ast_args {
+    struct sk_ast_node_array args;
+};
+
+struct sk_ast_block {
+    struct sk_ast_node_array contents;
+};
+
 struct sk_ast_if {
     struct sk_ast_node *condition;
     struct sk_ast_node *then_branch;
@@ -58,11 +68,7 @@ struct sk_ast_if {
 };
 
 struct sk_ast_print {
-    struct sk_ast_node *expression;
-};
-
-struct sk_ast_block {
-    struct sk_ast_node_array contents;
+    struct sk_ast_node *args;
 };
 
 struct sk_ast_fn {
@@ -84,9 +90,10 @@ struct sk_ast_node {
         struct sk_ast_literal literal;
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
+        struct sk_ast_args args;
+        struct sk_ast_block block;
         struct sk_ast_if ifn;
         struct sk_ast_print print;
-        struct sk_ast_block block;
         struct sk_ast_fn fn;
         struct sk_ast_program program;
         struct sk_ast_err err;

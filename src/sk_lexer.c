@@ -60,6 +60,8 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
     switch (c) {
         case '"':
             return scan_string(lexer);
+        case ',':
+            return make_token(lexer, SK_TOKEN_COMMA);
         case '(':
             return make_token(lexer, SK_TOKEN_LPAREN);
         case ')':

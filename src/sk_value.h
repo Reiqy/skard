@@ -32,7 +32,9 @@ struct sk_value {
 #define sk_boolean_true sk_boolean_value(true)
 #define sk_boolean_false sk_boolean_value(false)
 
-void sk_value_print(struct sk_value value);
+void sk_number_print(struct sk_value value);
+void sk_boolean_print(struct sk_value value);
+void sk_string_print(struct sk_value value);
 
 struct sk_value_array {
     struct sk_value *array;

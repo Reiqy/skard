@@ -7,7 +7,7 @@
 
 enum sk_opcode {
     SK_OP_HALT,
-    SK_OP_DUMP,
+    SK_OP_PRINT,
 
     SK_OP_POP,
 

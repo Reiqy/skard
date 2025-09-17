@@ -38,6 +38,8 @@ static void print_null_node(int depth);
 static void print_expression(const struct sk_ast_node *node, int depth);
 static void print_parenthesized_expression(const struct sk_ast_node *node);
 
+static void print_args(const struct sk_ast_node *node, int depth);
+
 static void print_block(const struct sk_ast_node *node, int depth);
 static void print_print(const struct sk_ast_node *node, int depth);
 static void print_fn(const struct sk_ast_node *node, int depth);
@@ -80,6 +82,16 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
     }
 }
 
+static void print_args(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("()\n");
+
+    for (size_t i = 0; i < node->as.args.args.count; i++) {
+        print_expression(node->as.args.args.nodes[i], depth + 1);
+    }
+}
+
 static void print_block(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
@@ -102,7 +114,7 @@ static void print_print(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
     printf("print\n");
-    print_expression(node->as.print.expression, depth + 1);
+    print_args(node->as.print.args, depth + 1);
 }
 
 static void print_fn(const struct sk_ast_node *node, int depth)

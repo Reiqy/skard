@@ -33,10 +33,25 @@ sk_number sk_number_from_string(const char *str, size_t length)
     return number;
 }
 
-void sk_value_print(struct sk_value value)
+void sk_number_print(struct sk_value value)
 {
-    // Currently we only support numbers
     printf("%lf", sk_as_number(value));
+}
+
+void sk_boolean_print(struct sk_value value)
+{
+    sk_bool boolean = sk_as_boolean(value);
+    if (boolean) {
+        printf("true");
+        return;
+    }
+
+    printf("false");
+}
+
+void sk_string_print(struct sk_value value)
+{
+    printf("%s", sk_as_cstring(value));
 }
 
 void sk_value_array_init(struct sk_value_array *array)

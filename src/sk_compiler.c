@@ -161,8 +161,13 @@ static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_nod
 
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
 {
-    compile_expression(compiler, node->as.print.expression);
-    emit(compiler, SK_OP_DUMP);
+    struct sk_ast_print *print = &node->as.print;
+    struct sk_ast_args *args = &print->args->as.args;
+    for (size_t i = args->args.count; i > 0; i--) {
+        compile_expression(compiler, args->args.nodes[i - 1]);
+    }
+
+    emit(compiler, SK_OP_PRINT);
 }
 
 static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node *node)
