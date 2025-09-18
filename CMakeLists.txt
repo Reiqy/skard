@@ -25,5 +25,7 @@ add_executable(skard
         src/sk_ast.c
         src/sk_ast.h
         src/sk_object.c
-        src/sk_object.h)
+        src/sk_object.h
+        src/sk_hashmap.c
+        src/sk_hashmap.h)
 target_compile_options(skard PRIVATE -Wall -Wextra -Wpedantic -Werror)
