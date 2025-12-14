@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "sk_utils.h"
+#include "sk_memory.h"
 
 void sk_chunk_init(struct sk_chunk *chunk)
 {

@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "sk_utils.h"
+#include "sk_memory.h"
 
 void sk_ast_node_array_init(struct sk_ast_node_array *array)
 {

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "sk_utils.h"
+#include "sk_memory.h"
 
 struct sk_object *sk_object_new(size_t size)
 {

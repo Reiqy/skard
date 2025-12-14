@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "sk_utils.h"
+#include "sk_memory.h"
 
 #define HASHMAP_MAX_LOAD_FACTOR 0.75
 

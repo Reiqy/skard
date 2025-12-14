@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include "skard.h"
 
@@ -132,26 +131,37 @@ static char *read_file(const char *filename)
         return NULL;
     }
 
-    fseek(file, 0L, SEEK_END);
+    if (fseek(file, 0L, SEEK_END) != 0) {
+        fclose(file);
+        fprintf(stderr, "Could not read file '%s'.", filename);
+        return NULL;
+    }
 
-    size_t size = ftell(file);
+    long size = ftell(file);
+    if (size < 0) {
+        fclose(file);
+        fprintf(stderr, "Could not read file '%s'.", filename);
+        return NULL;
+    }
+
+    size_t bytes = size;
     rewind(file);
 
-    char *buffer = malloc(size + 1);
+    char *buffer = malloc(bytes + 1);
     if (buffer == NULL) {
+        fclose(file);
         fprintf(stderr, "Not enough memory to read file '%s'.", filename);
         return NULL;
     }
 
     size_t read = fread(buffer, sizeof(char), size, file);
-    if (read < size) {
+    fclose(file);
+    if (read < bytes) {
         free(buffer);
         fprintf(stderr, "Could not read file '%s'.", filename);
         return NULL;
     }
 
     buffer[read] = '\0';
-
-    fclose(file);
     return buffer;
 }

@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "sk_utils.h"
+#include "sk_memory.h"
 
 sk_number sk_number_from_string(const char *str, size_t length)
 {

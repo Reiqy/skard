@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "sk_utils.h"
-
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token);
 static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
                                          struct sk_ast_node *expression);
