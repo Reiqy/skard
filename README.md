@@ -1,5 +1,7 @@
 # Skard
 
+[![CI](https://github.com/Reiqy/skard/actions/workflows/ci.yml/badge.svg)](https://github.com/Reiqy/skard/actions/workflows/ci.yml)
+
 > [!Warning]
 > This project is still in development. Breaking changes can happen unannounced. Use at your own risk.
 
