@@ -31,3 +31,6 @@ jobs:
 
       - name: Run AST tests
         run: python tools/test.py test build/skard --command ast --tests-dir tests/ast --no-color
+
+      - name: Run runtime tests
+        run: python tools/test.py test build/skard --command run --tests-dir tests/run --no-color

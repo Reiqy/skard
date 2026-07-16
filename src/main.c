@@ -91,21 +91,27 @@ static int file(const char *filename)
     sk_chunk_init(&chunk);
 
     struct sk_compiler compiler;
-    sk_compiler_compile(&compiler, ast, &chunk);
+    bool compiled = sk_compiler_compile(&compiler, ast, &chunk);
+    if (!compiled) {
+        sk_parser_free(&parser);
+        sk_chunk_free(&chunk);
+        free(source);
+        return EXIT_FAILURE;
+    }
 
     sk_parser_free(&parser);
 
     struct sk_vm vm;
     sk_vm_init(&vm);
 
-    sk_vm_run(&vm, &chunk);
+    enum sk_vm_result vm_result = sk_vm_run(&vm, &chunk);
 
     sk_vm_free(&vm);
 
     sk_chunk_free(&chunk);
 
     free(source);
-    return EXIT_SUCCESS;
+    return vm_result == SK_VM_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 static int ast(const char *filename)
