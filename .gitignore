@@ -3,3 +3,4 @@ cmake-build-*/
 .venv/
 
 scratch.sk
+docs/
