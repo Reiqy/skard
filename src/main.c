@@ -81,6 +81,11 @@ static int file(const char *filename)
     sk_parser_init(&parser, source);
 
     struct sk_ast_node *ast = sk_parser_parse(&parser);
+    if (parser.has_error) {
+        sk_parser_free(&parser);
+        free(source);
+        return EXIT_FAILURE;
+    }
 
     struct sk_chunk chunk;
     sk_chunk_init(&chunk);
@@ -114,6 +119,11 @@ static int ast(const char *filename)
     sk_parser_init(&parser, source);
 
     const struct sk_ast_node *node = sk_parser_parse(&parser);
+    if (parser.has_error) {
+        sk_parser_free(&parser);
+        free(source);
+        return EXIT_FAILURE;
+    }
 
     sk_ast_node_print(node);
 
