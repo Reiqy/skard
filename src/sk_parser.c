@@ -325,7 +325,7 @@ static struct sk_ast_node *parse_args(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
     struct sk_ast_node *args = ast_args_new(parser);
-    while (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
+    while (!check(parser, SK_TOKEN_RPAREN) && !check(parser, SK_TOKEN_EOF)) {
         struct sk_ast_node *arg = parse_expression(parser);
         if (args == NULL) {
             return NULL;
@@ -477,6 +477,8 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
         case SK_TOKEN_LESS_EQ:
         case SK_TOKEN_GREATER:
         case SK_TOKEN_GREATER_EQ:
+        case SK_TOKEN_EQUAL:
+        case SK_TOKEN_NOT_EQUAL:
         case SK_TOKEN_OR:
         case SK_TOKEN_AND:
             return parse_binary(parser, left);
