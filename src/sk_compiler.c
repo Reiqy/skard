@@ -265,10 +265,10 @@ static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node
 
     switch (node->as.unary.operator.type) {
         case SK_TOKEN_PLUS:
-            emit(compiler, SK_OP_NADD);
+            // Unary plus preserves the operand; no bytecode is needed.
             break;
         case SK_TOKEN_MINUS:
-            emit(compiler, SK_OP_NSUB);
+            emit(compiler, SK_OP_NNEG);
             break;
         case SK_TOKEN_NOT:
             emit(compiler, SK_OP_NOT);
