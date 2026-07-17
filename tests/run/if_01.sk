@@ -1,0 +1,13 @@
+fn main() {
+    if (true) {
+        print("correct")
+    } else {
+        print("incorrect")
+    }
+
+    if (false) {
+        print("incorrect")
+    } else {
+        print("correct")
+    }
+}

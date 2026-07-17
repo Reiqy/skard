@@ -1,0 +1,29 @@
+fn main() {
+    if (true) {
+        if (false) {
+            print("incorrect")
+        } else {
+            print("correct")
+        }
+    } else {
+        if (true) {
+            print("incorrect")
+        } else {
+            print("incorrect")
+        }
+    }
+
+    if (false) {
+        if (false) {
+            print("incorrect")
+        } else {
+            print("incorrect")
+        }
+    } else {
+        if (false) {
+            print("incorrect")
+        } else {
+            print("correct")
+        }
+    }
+}
