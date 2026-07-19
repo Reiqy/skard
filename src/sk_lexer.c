@@ -62,6 +62,8 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
             return scan_string(lexer);
         case ',':
             return make_token(lexer, SK_TOKEN_COMMA);
+        case ':':
+            return make_token(lexer, SK_TOKEN_COLON);
         case '(':
             return make_token(lexer, SK_TOKEN_LPAREN);
         case ')':
@@ -73,7 +75,7 @@ struct sk_token sk_lexer_next(struct sk_lexer *lexer)
         case '+':
             return make_token(lexer, SK_TOKEN_PLUS);
         case '-':
-            return make_token(lexer, SK_TOKEN_MINUS);
+            return make_token(lexer, match(lexer, '>') ? SK_TOKEN_RARROW : SK_TOKEN_MINUS);
         case '*':
             return make_token(lexer, SK_TOKEN_STAR);
         case '/':
@@ -244,6 +246,8 @@ enum sk_token_type classify_identifier(const struct sk_lexer *lexer)
             break;
         case 'i':
             return check_keyword(lexer, 1, "if", SK_TOKEN_IF);
+        case 'l':
+            return check_keyword(lexer, 1, "let", SK_TOKEN_LET);
         case 'p':
             return check_keyword(lexer, 1, "print", SK_TOKEN_PRINT);
         case 'r':
