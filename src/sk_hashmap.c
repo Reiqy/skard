@@ -95,7 +95,8 @@ static struct sk_hashmap_entry *find(struct sk_hashmap_entry *entries, size_t ca
     uint32_t index = hash(key, key_len) % capacity;
     for (;;) {
         struct sk_hashmap_entry *entry = &entries[index];
-        if (entry->key == NULL || memcmp(entry->key, key, key_len) == 0) {
+        if (entry->key == NULL ||
+            (entry->key_len == key_len && memcmp(entry->key, key, key_len) == 0)) {
             return entry;
         }
 
