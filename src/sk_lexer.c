@@ -30,8 +30,11 @@ static bool match(struct sk_lexer *lexer, char expected);
 
 static void skip_whitespace(struct sk_lexer *lexer);
 
-enum sk_token_type check_keyword(const struct sk_lexer *lexer, int offset, const char *keyword,
-                                 enum sk_token_type type);
+enum sk_token_type check_keyword(
+    const struct sk_lexer *lexer,
+    int offset,
+    const char *keyword,
+    enum sk_token_type type);
 enum sk_token_type classify_identifier(const struct sk_lexer *lexer);
 
 static struct sk_token scan_number(struct sk_lexer *lexer);

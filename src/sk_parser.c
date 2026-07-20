@@ -1,16 +1,21 @@
 #include "sk_parser.h"
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 static const struct sk_token EMPTY_TOKEN = {0};
 
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token);
 static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct sk_token token);
-static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
-                                         struct sk_ast_node *expression);
-static struct sk_ast_node *ast_binary_new(struct sk_parser *parser, struct sk_token operator, struct sk_ast_node *left,
-                                          struct sk_ast_node *right);
+static struct sk_ast_node *ast_unary_new(
+    struct sk_parser *parser,
+    struct sk_token operator,
+    struct sk_ast_node * expression);
+static struct sk_ast_node *ast_binary_new(
+    struct sk_parser *parser,
+    struct sk_token operator,
+    struct sk_ast_node * left,
+    struct sk_ast_node *right);
 
 static struct sk_ast_node *ast_args_new(struct sk_parser *parser);
 
@@ -36,9 +41,9 @@ static struct sk_ast_node *ast_program_new(struct sk_parser *parser);
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token)
 {
     struct sk_ast_node *literal = sk_ast_node_arena_alloc(&parser->arena);
-    *literal = (struct sk_ast_node){
+    *literal = (struct sk_ast_node) {
         .type = SK_AST_LITERAL,
-        .as.literal = (struct sk_ast_literal){
+        .as.literal = (struct sk_ast_literal) {
             .token = token,
         },
     };
@@ -49,9 +54,9 @@ static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_t
 static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct sk_token token)
 {
     struct sk_ast_node *identifier = sk_ast_node_arena_alloc(&parser->arena);
-    *identifier = (struct sk_ast_node){
+    *identifier = (struct sk_ast_node) {
         .type = SK_AST_IDENTIFIER,
-        .as.identifier = (struct sk_ast_identifier){
+        .as.identifier = (struct sk_ast_identifier) {
             .token = token,
         }
     };
@@ -59,14 +64,16 @@ static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct s
     return identifier;
 }
 
-static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
-                                         struct sk_ast_node *expression)
+static struct sk_ast_node *ast_unary_new(
+    struct sk_parser *parser,
+    struct sk_token operator,
+    struct sk_ast_node * expression)
 {
     struct sk_ast_node *unary = sk_ast_node_arena_alloc(&parser->arena);
-    *unary = (struct sk_ast_node){
+    *unary = (struct sk_ast_node) {
         .type = SK_AST_UNARY,
-        .as.unary = (struct sk_ast_unary){
-            .operator = operator,
+        .as.unary = (struct sk_ast_unary) {
+            .operator= operator,
             .expression = expression,
         },
     };
@@ -74,14 +81,17 @@ static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_tok
     return unary;
 }
 
-static struct sk_ast_node *ast_binary_new(struct sk_parser *parser, struct sk_token operator, struct sk_ast_node *left,
-                                          struct sk_ast_node *right)
+static struct sk_ast_node *ast_binary_new(
+    struct sk_parser *parser,
+    struct sk_token operator,
+    struct sk_ast_node * left,
+    struct sk_ast_node *right)
 {
     struct sk_ast_node *binary = sk_ast_node_arena_alloc(&parser->arena);
-    *binary = (struct sk_ast_node){
+    *binary = (struct sk_ast_node) {
         .type = SK_AST_BINARY,
-        .as.binary = (struct sk_ast_binary){
-            .operator = operator,
+        .as.binary = (struct sk_ast_binary) {
+            .operator= operator,
             .left = left,
             .right = right,
         },
@@ -94,7 +104,7 @@ static struct sk_ast_node *ast_args_new(struct sk_parser *parser)
 {
     struct sk_ast_args inner = {0};
     struct sk_ast_node *block = sk_ast_node_arena_alloc(&parser->arena);
-    *block = (struct sk_ast_node){
+    *block = (struct sk_ast_node) {
         .type = SK_AST_ARGS,
         .as.args = inner,
     };
@@ -108,7 +118,7 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
 {
     struct sk_ast_block inner = {0};
     struct sk_ast_node *block = sk_ast_node_arena_alloc(&parser->arena);
-    *block = (struct sk_ast_node){
+    *block = (struct sk_ast_node) {
         .type = SK_AST_BLOCK,
         .as.block = inner,
     };
@@ -125,9 +135,9 @@ static struct sk_ast_node *ast_if_new(
     struct sk_ast_node *else_branch)
 {
     struct sk_ast_node *ifn = sk_ast_node_arena_alloc(&parser->arena);
-    *ifn = (struct sk_ast_node){
+    *ifn = (struct sk_ast_node) {
         .type = SK_AST_IF,
-        .as.ifn = (struct sk_ast_if){
+        .as.ifn = (struct sk_ast_if) {
             .condition = condition,
             .then_branch = then_branch,
             .else_branch = else_branch,
@@ -140,9 +150,9 @@ static struct sk_ast_node *ast_if_new(
 static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression)
 {
     struct sk_ast_node *returnn = sk_ast_node_arena_alloc(&parser->arena);
-    *returnn = (struct sk_ast_node){
+    *returnn = (struct sk_ast_node) {
         .type = SK_AST_RETURN,
-        .as.returnn = (struct sk_ast_return){
+        .as.returnn = (struct sk_ast_return) {
             .expression = expression,
         }
     };
@@ -152,9 +162,9 @@ static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_as
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args)
 {
     struct sk_ast_node *print = sk_ast_node_arena_alloc(&parser->arena);
-    *print = (struct sk_ast_node){
+    *print = (struct sk_ast_node) {
         .type = SK_AST_PRINT,
-        .as.print = (struct sk_ast_print){
+        .as.print = (struct sk_ast_print) {
             .args = args,
         },
     };
@@ -171,9 +181,9 @@ static struct sk_ast_node *ast_fn_new(
     struct sk_ast_node *body)
 {
     struct sk_ast_node *fn = sk_ast_node_arena_alloc(&parser->arena);
-    *fn = (struct sk_ast_node){
+    *fn = (struct sk_ast_node) {
         .type = SK_AST_FN,
-        .as.fn = (struct sk_ast_fn){
+        .as.fn = (struct sk_ast_fn) {
             .name = name,
             .parameters = parameters,
             .has_return_type = has_return_type,
@@ -189,7 +199,7 @@ static struct sk_ast_node *ast_program_new(struct sk_parser *parser)
 {
     struct sk_ast_program inner = {0};
     struct sk_ast_node *program = sk_ast_node_arena_alloc(&parser->arena);
-    *program = (struct sk_ast_node){
+    *program = (struct sk_ast_node) {
         .type = SK_AST_PROGRAM,
         .as.program = inner,
     };
@@ -376,10 +386,12 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
             consume(parser, SK_TOKEN_IDENTIFIER, "Expected parameter type.");
             struct sk_token parameter_type = parser->previous;
 
-            sk_ast_parameter_array_add(&parameters, (struct sk_ast_parameter){
-                .name = parameter_name,
-                .type = parameter_type,
-            });
+            sk_ast_parameter_array_add(
+                &parameters,
+                (struct sk_ast_parameter) {
+                    .name = parameter_name,
+                    .type = parameter_type,
+                });
         } while (match(parser, SK_TOKEN_COMMA));
     }
 
@@ -393,13 +405,7 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
     }
 
     struct sk_ast_node *body = parse_block(parser);
-    return ast_fn_new(
-        parser,
-        name,
-        parameters,
-        has_return_type,
-        return_type,
-        body);
+    return ast_fn_new(parser, name, parameters, has_return_type, return_type, body);
 }
 
 static struct sk_ast_node *parse_args(struct sk_parser *parser)
@@ -598,7 +604,7 @@ static struct sk_ast_node *parse_grouping(struct sk_parser *parser)
 
 static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_node *left)
 {
-    struct sk_token operator = parser->previous;
+    struct sk_token operator= parser->previous;
     enum precedence precedence = get_precedence(operator.type);
     struct sk_ast_node *right = parse_pratt(parser, precedence + 1);
     return ast_binary_new(parser, operator, left, right);
@@ -606,7 +612,7 @@ static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_
 
 static struct sk_ast_node *parse_unary(struct sk_parser *parser)
 {
-    struct sk_token operator = parser->previous;
+    struct sk_token operator= parser->previous;
     struct sk_ast_node *expression = parse_pratt(parser, PREC_UNARY);
     return ast_unary_new(parser, operator, expression);
 }

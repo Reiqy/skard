@@ -1,8 +1,8 @@
 #ifndef SK_VALUE_H
 #define SK_VALUE_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "sk_object.h"
 
@@ -25,9 +25,9 @@ struct sk_value {
 #define sk_as_string(value) ((struct sk_object_string *)value.as.object)
 #define sk_as_cstring(value) (sk_as_string(value))->chars
 
-#define sk_number_value(value) ((struct sk_value) { .as.number = (value) })
-#define sk_boolean_value(value) ((struct sk_value) { .as.boolean = (value) })
-#define sk_object_value(value) ((struct sk_value) { .as.object = (sk_object *)(value) })
+#define sk_number_value(value) ((struct sk_value) {.as.number = (value)})
+#define sk_boolean_value(value) ((struct sk_value) {.as.boolean = (value)})
+#define sk_object_value(value) ((struct sk_value) {.as.object = (sk_object *)(value)})
 
 #define sk_boolean_true sk_boolean_value(true)
 #define sk_boolean_false sk_boolean_value(false)
@@ -47,4 +47,4 @@ void sk_value_array_free(struct sk_value_array *array);
 void sk_value_array_add(struct sk_value_array *array, struct sk_value value);
 struct sk_value sk_value_array_get(const struct sk_value_array *array, size_t index);
 
-#endif //SK_VALUE_H
+#endif // SK_VALUE_H

@@ -43,9 +43,7 @@ void sk_ast_parameter_array_free(struct sk_ast_parameter_array *array)
     sk_ast_parameter_array_init(array);
 }
 
-void sk_ast_parameter_array_add(
-    struct sk_ast_parameter_array *array,
-    struct sk_ast_parameter parameter)
+void sk_ast_parameter_array_add(struct sk_ast_parameter_array *array, struct sk_ast_parameter parameter)
 {
     if (array->count >= array->capacity) {
         array->capacity = sk_grow(array->capacity);
@@ -90,21 +88,21 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
 {
     switch (node->type) {
         case SK_AST_LITERAL:
-            printf("%.*s", (int) node->as.literal.token.length, node->as.literal.token.start);
+            printf("%.*s", (int)node->as.literal.token.length, node->as.literal.token.start);
             break;
         case SK_AST_IDENTIFIER:
-            printf("%.*s", (int) node->as.identifier.token.length, node->as.identifier.token.start);
+            printf("%.*s", (int)node->as.identifier.token.length, node->as.identifier.token.start);
             break;
         case SK_AST_UNARY:
             printf("(");
-            printf("%.*s", (int) node->as.unary.operator.length, node->as.unary.operator.start);
+            printf("%.*s", (int)node->as.unary.operator.length, node->as.unary.operator.start);
             print_parenthesized_expression(node->as.unary.expression);
             printf(")");
             break;
         case SK_AST_BINARY:
             printf("(");
             print_parenthesized_expression(node->as.binary.left);
-            printf(" %.*s ", (int) node->as.binary.operator.length, node->as.binary.operator.start);
+            printf(" %.*s ", (int)node->as.binary.operator.length, node->as.binary.operator.start);
             print_parenthesized_expression(node->as.binary.right);
             printf(")");
             break;
@@ -179,18 +177,15 @@ static void print_fn(const struct sk_ast_node *node, int depth)
         struct sk_ast_parameter *parameter = &node->as.fn.parameters.parameters[i];
         printf(
             "%.*s: %.*s",
-            (int) parameter->name.length,
+            (int)parameter->name.length,
             parameter->name.start,
-            (int) parameter->type.length,
+            (int)parameter->type.length,
             parameter->type.start);
     }
 
     printf(")");
     if (node->as.fn.has_return_type) {
-        printf(
-            " -> %.*s",
-            (int) node->as.fn.return_type.length,
-            node->as.fn.return_type.start);
+        printf(" -> %.*s", (int)node->as.fn.return_type.length, node->as.fn.return_type.start);
     }
 
     printf("\n");

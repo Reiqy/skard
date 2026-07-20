@@ -73,4 +73,4 @@ enum sk_vm_result {
 
 enum sk_vm_result sk_vm_run(struct sk_vm *vm, struct sk_chunk *chunk);
 
-#endif //SKARD_SK_VM_H
+#endif // SKARD_SK_VM_H

@@ -152,4 +152,4 @@ void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, size_t block_capaci
 void sk_ast_node_arena_free(struct sk_ast_node_arena *arena);
 struct sk_ast_node *sk_ast_node_arena_alloc(struct sk_ast_node_arena *arena);
 
-#endif //SKARD_SK_AST_H
+#endif // SKARD_SK_AST_H

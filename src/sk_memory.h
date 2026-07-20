@@ -12,4 +12,4 @@ void *sk_reallocate(void *ptr, size_t new_size);
 
 #define sk_grow(capacity) ((capacity) < 8 ? 8 : 2 * (capacity))
 
-#endif //SKARD_SK_UTILS_H
+#endif // SKARD_SK_UTILS_H

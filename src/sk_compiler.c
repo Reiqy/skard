@@ -307,7 +307,7 @@ static void compile_number(struct sk_compiler *compiler, struct sk_ast_literal *
 
 static void compile_string(struct sk_compiler *compiler, struct sk_ast_literal *literal)
 {
-    struct sk_value string_value = sk_object_value(sk_object_string_from_chars(
-        literal->token.start + 1, literal->token.length - 2));
+    struct sk_value string_value = sk_object_value(
+        sk_object_string_from_chars(literal->token.start + 1, literal->token.length - 2));
     emit_const(compiler, string_value);
 }

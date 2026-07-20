@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.24)
 project(skard C)
 
 set(CMAKE_C_STANDARD 99)
@@ -29,3 +29,20 @@ add_executable(skard
         src/sk_hashmap.c
         src/sk_hashmap.h)
 target_compile_options(skard PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+find_program(CLANG_FORMAT clang-format)
+if(CLANG_FORMAT)
+    file(GLOB_RECURSE SKARD_FORMAT_FILES CONFIGURE_DEPENDS
+            "${CMAKE_SOURCE_DIR}/src/*.c"
+            "${CMAKE_SOURCE_DIR}/src/*.h")
+
+    add_custom_target(format
+            COMMAND ${CLANG_FORMAT} -i ${SKARD_FORMAT_FILES}
+            COMMENT "Formatting C sources")
+
+    add_custom_target(format-check
+            COMMAND ${CLANG_FORMAT} --dry-run --Werror ${SKARD_FORMAT_FILES}
+            COMMENT "Checking C source formatting")
+else()
+    message(STATUS "clang-format not found; format targets will not be available")
+endif()

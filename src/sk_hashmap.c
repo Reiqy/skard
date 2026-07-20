@@ -9,7 +9,11 @@
 #define HASHMAP_MAX_LOAD_FACTOR 0.75
 
 static void adjust_capacity(struct sk_hashmap *hashmap, size_t new_capacity);
-static struct sk_hashmap_entry *find(struct sk_hashmap_entry *entries, size_t capacity, const char *key, size_t key_len);
+static struct sk_hashmap_entry *find(
+    struct sk_hashmap_entry *entries,
+    size_t capacity,
+    const char *key,
+    size_t key_len);
 static uint32_t hash(const char *key, size_t key_len);
 
 void sk_hashmap_init(struct sk_hashmap *hashmap)
@@ -95,8 +99,7 @@ static struct sk_hashmap_entry *find(struct sk_hashmap_entry *entries, size_t ca
     uint32_t index = hash(key, key_len) % capacity;
     for (;;) {
         struct sk_hashmap_entry *entry = &entries[index];
-        if (entry->key == NULL ||
-            (entry->key_len == key_len && memcmp(entry->key, key, key_len) == 0)) {
+        if (entry->key == NULL || (entry->key_len == key_len && memcmp(entry->key, key, key_len) == 0)) {
             return entry;
         }
 

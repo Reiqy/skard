@@ -12,4 +12,4 @@
 #include "sk_value.h"
 #include "sk_vm.h"
 
-#endif //SKARD_SKARD_H
+#endif // SKARD_SKARD_H

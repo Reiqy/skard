@@ -5,4 +5,4 @@
 
 void sk_debug_chunk(const struct sk_chunk *chunk, const char *name);
 
-#endif //SKARD_SK_DEBUG_H
+#endif // SKARD_SK_DEBUG_H

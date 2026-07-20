@@ -1,7 +1,7 @@
 #include "sk_memory.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void *sk_reallocate(void *ptr, size_t new_size)
 {

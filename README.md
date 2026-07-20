@@ -24,3 +24,15 @@ fn main() {
 ## Build instructions
 
 Skard uses CMake. Currently, it produces a single executable. Details will be added.
+
+## Formatting
+
+Skard uses `clang-format` with the repository's `.clang-format` configuration. After
+installing `clang-format`, enable the pre-commit hook once per checkout:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+To format the source tree manually, run `cmake --build build --target format`. The
+CI workflow checks formatting with `format-check`.
