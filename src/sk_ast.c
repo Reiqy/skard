@@ -29,6 +29,33 @@ void sk_ast_node_array_add(struct sk_ast_node_array *array, struct sk_ast_node *
     array->count++;
 }
 
+void sk_ast_parameter_array_init(struct sk_ast_parameter_array *array)
+{
+    array->parameters = NULL;
+    array->capacity = 0;
+    array->count = 0;
+}
+
+void sk_ast_parameter_array_free(struct sk_ast_parameter_array *array)
+{
+    sk_free(array->parameters);
+
+    sk_ast_parameter_array_init(array);
+}
+
+void sk_ast_parameter_array_add(
+    struct sk_ast_parameter_array *array,
+    struct sk_ast_parameter parameter)
+{
+    if (array->count >= array->capacity) {
+        array->capacity = sk_grow(array->capacity);
+        array->parameters = sk_realloc(array->parameters, array->capacity);
+    }
+
+    array->parameters[array->count] = parameter;
+    array->count++;
+}
+
 static void ast_node_print_impl(const struct sk_ast_node *node, int depth);
 
 static void print_indent(int depth);
@@ -127,7 +154,31 @@ static void print_print(const struct sk_ast_node *node, int depth)
 static void print_fn(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
-    printf("fn %.*s()\n", (int)node->as.fn.name.length, node->as.fn.name.start);
+    printf("fn %.*s(", (int)node->as.fn.name.length, node->as.fn.name.start);
+
+    for (size_t i = 0; i < node->as.fn.parameters.count; i++) {
+        if (i > 0) {
+            printf(", ");
+        }
+
+        struct sk_ast_parameter *parameter = &node->as.fn.parameters.parameters[i];
+        printf(
+            "%.*s: %.*s",
+            (int) parameter->name.length,
+            parameter->name.start,
+            (int) parameter->type.length,
+            parameter->type.start);
+    }
+
+    printf(")");
+    if (node->as.fn.has_return_type) {
+        printf(
+            " -> %.*s",
+            (int) node->as.fn.return_type.length,
+            node->as.fn.return_type.start);
+    }
+
+    printf("\n");
     ast_node_print_impl(node->as.fn.body, depth + 1);
 }
 

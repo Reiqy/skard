@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+static const struct sk_token EMPTY_TOKEN = {0};
+
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token);
 static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
                                          struct sk_ast_node *expression);
@@ -19,7 +21,13 @@ static struct sk_ast_node *ast_if_new(
     struct sk_ast_node *else_branch);
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args);
 
-static struct sk_ast_node *ast_fn_new(struct sk_parser *parser, struct sk_token name, struct sk_ast_node *body);
+static struct sk_ast_node *ast_fn_new(
+    struct sk_parser *parser,
+    struct sk_token name,
+    struct sk_ast_parameter_array parameters,
+    bool has_return_type,
+    struct sk_token return_type,
+    struct sk_ast_node *body);
 
 static struct sk_ast_node *ast_program_new(struct sk_parser *parser);
 
@@ -127,13 +135,22 @@ static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast
     return print;
 }
 
-static struct sk_ast_node *ast_fn_new(struct sk_parser *parser, struct sk_token name, struct sk_ast_node *body)
+static struct sk_ast_node *ast_fn_new(
+    struct sk_parser *parser,
+    struct sk_token name,
+    struct sk_ast_parameter_array parameters,
+    bool has_return_type,
+    struct sk_token return_type,
+    struct sk_ast_node *body)
 {
     struct sk_ast_node *fn = sk_ast_node_arena_alloc(&parser->arena);
     *fn = (struct sk_ast_node){
         .type = SK_AST_FN,
         .as.fn = (struct sk_ast_fn){
             .name = name,
+            .parameters = parameters,
+            .has_return_type = has_return_type,
+            .return_type = return_type,
             .body = body,
         },
     };
@@ -315,10 +332,45 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_IDENTIFIER, "Expected identifier.");
     struct sk_token name = parser->previous;
+
     consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
+
+    struct sk_ast_parameter_array parameters;
+    sk_ast_parameter_array_init(&parameters);
+
+    if (!check(parser, SK_TOKEN_RPAREN)) {
+        do {
+            consume(parser, SK_TOKEN_IDENTIFIER, "Expected parameter name.");
+            struct sk_token parameter_name = parser->previous;
+
+            consume(parser, SK_TOKEN_COLON, "Expected ':' after parameter name.");
+            consume(parser, SK_TOKEN_IDENTIFIER, "Expected parameter type.");
+            struct sk_token parameter_type = parser->previous;
+
+            sk_ast_parameter_array_add(&parameters, (struct sk_ast_parameter){
+                .name = parameter_name,
+                .type = parameter_type,
+            });
+        } while (match(parser, SK_TOKEN_COMMA));
+    }
+
     consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
+
+    bool has_return_type = match(parser, SK_TOKEN_RARROW);
+    struct sk_token return_type = EMPTY_TOKEN;
+    if (has_return_type) {
+        consume(parser, SK_TOKEN_IDENTIFIER, "Expected return type.");
+        return_type = parser->previous;
+    }
+
     struct sk_ast_node *body = parse_block(parser);
-    return ast_fn_new(parser, name, body);
+    return ast_fn_new(
+        parser,
+        name,
+        parameters,
+        has_return_type,
+        return_type,
+        body);
 }
 
 static struct sk_ast_node *parse_args(struct sk_parser *parser)

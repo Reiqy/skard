@@ -1,6 +1,7 @@
 #ifndef SKARD_SK_AST_H
 #define SKARD_SK_AST_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "sk_lexer.h"
@@ -14,6 +15,21 @@ struct sk_ast_node_array {
 void sk_ast_node_array_init(struct sk_ast_node_array *array);
 void sk_ast_node_array_free(struct sk_ast_node_array *array);
 void sk_ast_node_array_add(struct sk_ast_node_array *array, struct sk_ast_node *node);
+
+struct sk_ast_parameter {
+    struct sk_token name;
+    struct sk_token type;
+};
+
+struct sk_ast_parameter_array {
+    struct sk_ast_parameter *parameters;
+    size_t capacity;
+    size_t count;
+};
+
+void sk_ast_parameter_array_init(struct sk_ast_parameter_array *array);
+void sk_ast_parameter_array_free(struct sk_ast_parameter_array *array);
+void sk_ast_parameter_array_add(struct sk_ast_parameter_array *array, struct sk_ast_parameter parameter);
 
 enum sk_ast_node_type {
     // Expressions
@@ -73,6 +89,9 @@ struct sk_ast_print {
 
 struct sk_ast_fn {
     struct sk_token name;
+    struct sk_ast_parameter_array parameters;
+    bool has_return_type;
+    struct sk_token return_type;
     struct sk_ast_node *body;
 };
 

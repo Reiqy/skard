@@ -1,0 +1,3 @@
+program:
+  fn add(a: Number, b: Number) -> Number
+    {}
