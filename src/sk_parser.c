@@ -6,6 +6,7 @@
 static const struct sk_token EMPTY_TOKEN = {0};
 
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token);
+static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct sk_token token);
 static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
                                          struct sk_ast_node *expression);
 static struct sk_ast_node *ast_binary_new(struct sk_parser *parser, struct sk_token operator, struct sk_ast_node *left,
@@ -19,6 +20,7 @@ static struct sk_ast_node *ast_if_new(
     struct sk_ast_node *condition,
     struct sk_ast_node *then_branch,
     struct sk_ast_node *else_branch);
+static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression);
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args);
 
 static struct sk_ast_node *ast_fn_new(
@@ -42,6 +44,19 @@ static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_t
     };
 
     return literal;
+}
+
+static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct sk_token token)
+{
+    struct sk_ast_node *identifier = sk_ast_node_arena_alloc(&parser->arena);
+    *identifier = (struct sk_ast_node){
+        .type = SK_AST_IDENTIFIER,
+        .as.identifier = (struct sk_ast_identifier){
+            .token = token,
+        }
+    };
+
+    return identifier;
 }
 
 static struct sk_ast_node *ast_unary_new(struct sk_parser *parser, struct sk_token operator,
@@ -122,6 +137,18 @@ static struct sk_ast_node *ast_if_new(
     return ifn;
 }
 
+static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression)
+{
+    struct sk_ast_node *returnn = sk_ast_node_arena_alloc(&parser->arena);
+    *returnn = (struct sk_ast_node){
+        .type = SK_AST_RETURN,
+        .as.returnn = (struct sk_ast_return){
+            .expression = expression,
+        }
+    };
+    return returnn;
+}
+
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args)
 {
     struct sk_ast_node *print = sk_ast_node_arena_alloc(&parser->arena);
@@ -188,6 +215,7 @@ static struct sk_ast_node *parse_args(struct sk_parser *parser);
 static struct sk_ast_node *parse_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_block(struct sk_parser *parser);
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser);
+static struct sk_ast_node *parse_return_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
 
 enum precedence {
@@ -211,6 +239,7 @@ static struct sk_ast_node *parse_grouping(struct sk_parser *parser);
 static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_node *left);
 static struct sk_ast_node *parse_unary(struct sk_parser *parser);
 static struct sk_ast_node *parse_literal(struct sk_parser *parser);
+static struct sk_ast_node *parse_identifier(struct sk_parser *parser);
 
 void sk_parser_init(struct sk_parser *parser, const char *source)
 {
@@ -400,6 +429,10 @@ static struct sk_ast_node *parse_statement(struct sk_parser *parser)
         return parse_if_statement(parser);
     }
 
+    if (check(parser, SK_TOKEN_RETURN)) {
+        return parse_return_statement(parser);
+    }
+
     if (check(parser, SK_TOKEN_PRINT)) {
         return parse_print_statement(parser);
     }
@@ -434,6 +467,7 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser)
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_IF, "Expected 'if'.");
+
     consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
     struct sk_ast_node *condition = parse_expression(parser);
     consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
@@ -447,9 +481,22 @@ static struct sk_ast_node *parse_if_statement(struct sk_parser *parser)
     return ast_if_new(parser, condition, then_branch, else_branch);
 }
 
+static struct sk_ast_node *parse_return_statement(struct sk_parser *parser)
+{
+    consume(parser, SK_TOKEN_RETURN, "Expected 'return'.");
+
+    struct sk_ast_node *expression = NULL;
+    if (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
+        expression = parse_expression(parser);
+    }
+
+    return ast_return_new(parser, expression);
+}
+
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_PRINT, "Expected 'print'.");
+
     struct sk_ast_node *args = parse_args(parser);
     return ast_print_new(parser, args);
 }
@@ -511,6 +558,8 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser)
         case SK_TOKEN_TRUE:
         case SK_TOKEN_FALSE:
             return parse_literal(parser);
+        case SK_TOKEN_IDENTIFIER:
+            return parse_identifier(parser);
         default:
             error(parser, &parser->previous, "Expected prefix expression.");
             return NULL;
@@ -565,4 +614,9 @@ static struct sk_ast_node *parse_unary(struct sk_parser *parser)
 static struct sk_ast_node *parse_literal(struct sk_parser *parser)
 {
     return ast_literal_new(parser, parser->previous);
+}
+
+static struct sk_ast_node *parse_identifier(struct sk_parser *parser)
+{
+    return ast_identifier_new(parser, parser->previous);
 }

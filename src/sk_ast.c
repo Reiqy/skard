@@ -68,6 +68,8 @@ static void print_parenthesized_expression(const struct sk_ast_node *node);
 static void print_args(const struct sk_ast_node *node, int depth);
 
 static void print_block(const struct sk_ast_node *node, int depth);
+static void print_if(const struct sk_ast_node *node, int depth);
+static void print_return(const struct sk_ast_node *node, int depth);
 static void print_print(const struct sk_ast_node *node, int depth);
 static void print_fn(const struct sk_ast_node *node, int depth);
 static void print_program(const struct sk_ast_node *node, int depth);
@@ -89,6 +91,9 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
     switch (node->type) {
         case SK_AST_LITERAL:
             printf("%.*s", (int) node->as.literal.token.length, node->as.literal.token.start);
+            break;
+        case SK_AST_IDENTIFIER:
+            printf("%.*s", (int) node->as.identifier.token.length, node->as.identifier.token.start);
             break;
         case SK_AST_UNARY:
             printf("(");
@@ -142,6 +147,16 @@ static void print_if(const struct sk_ast_node *node, int depth)
     print_indent(depth);
     printf("else\n");
     ast_node_print_impl(node->as.ifn.else_branch, depth + 1);
+}
+
+static void print_return(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("return\n");
+
+    if (node->as.returnn.expression != NULL) {
+        print_expression(node->as.returnn.expression, depth + 1);
+    }
 }
 
 static void print_print(const struct sk_ast_node *node, int depth)
@@ -205,6 +220,9 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
             break;
         case SK_AST_IF:
             print_if(node, depth);
+            break;
+        case SK_AST_RETURN:
+            print_return(node, depth);
             break;
         case SK_AST_PRINT:
             print_print(node, depth);

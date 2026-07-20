@@ -34,6 +34,7 @@ void sk_ast_parameter_array_add(struct sk_ast_parameter_array *array, struct sk_
 enum sk_ast_node_type {
     // Expressions
     SK_AST_LITERAL,
+    SK_AST_IDENTIFIER,
     SK_AST_UNARY,
     SK_AST_BINARY,
 
@@ -42,6 +43,7 @@ enum sk_ast_node_type {
     // Statements
     SK_AST_BLOCK,
     SK_AST_IF,
+    SK_AST_RETURN,
     SK_AST_PRINT,
 
     // Declarations
@@ -55,6 +57,10 @@ enum sk_ast_node_type {
 };
 
 struct sk_ast_literal {
+    struct sk_token token;
+};
+
+struct sk_ast_identifier {
     struct sk_token token;
 };
 
@@ -83,6 +89,10 @@ struct sk_ast_if {
     struct sk_ast_node *else_branch;
 };
 
+struct sk_ast_return {
+    struct sk_ast_node *expression;
+};
+
 struct sk_ast_print {
     struct sk_ast_node *args;
 };
@@ -107,11 +117,13 @@ struct sk_ast_node {
     enum sk_ast_node_type type;
     union {
         struct sk_ast_literal literal;
+        struct sk_ast_identifier identifier;
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
         struct sk_ast_args args;
         struct sk_ast_block block;
         struct sk_ast_if ifn;
+        struct sk_ast_return returnn;
         struct sk_ast_print print;
         struct sk_ast_fn fn;
         struct sk_ast_program program;
