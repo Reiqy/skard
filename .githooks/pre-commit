@@ -2,6 +2,8 @@
 
 set -eu
 
+echo "pre-commit: running" >&2
+
 if ! command -v clang-format >/dev/null 2>&1; then
     echo "clang-format is required for the pre-commit hook." >&2
     echo "Install clang-format or bypass this hook with --no-verify." >&2
@@ -10,6 +12,7 @@ fi
 
 files=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(c|h)$' || true)
 if [ -z "$files" ]; then
+    echo "pre-commit: no C/H files staged" >&2
     exit 0
 fi
 

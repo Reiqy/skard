@@ -16,7 +16,7 @@ fn main() {
     } else {
         print ("%n", 0)
     }
-    
+
     print ("%n", 42)
 }
 ```
