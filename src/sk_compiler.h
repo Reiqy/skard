@@ -8,6 +8,7 @@
 
 struct sk_compiler {
     struct sk_chunk *current_chunk;
+    bool has_error;
 };
 
 bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_chunk *chunk);

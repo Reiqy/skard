@@ -4,6 +4,8 @@
 
 #include "sk_parser.h"
 
+static void compiler_error(struct sk_compiler *compiler, const char *msg);
+
 static void emit(struct sk_compiler *compiler, uint8_t byte);
 static void emit2(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2);
 static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, uint8_t byte3);
@@ -37,10 +39,18 @@ static void compile_string(struct sk_compiler *compiler, struct sk_ast_literal *
 bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_chunk *chunk)
 {
     compiler->current_chunk = chunk;
+    compiler->has_error = false;
 
     compile_program(compiler, node);
     emit_halt(compiler);
-    return true;
+
+    return !compiler->has_error;
+}
+
+static void compiler_error(struct sk_compiler *compiler, const char *msg)
+{
+    fprintf(stderr, "%s\n", msg);
+    compiler->has_error = true;
 }
 
 static void emit(struct sk_compiler *compiler, uint8_t byte)
@@ -82,7 +92,7 @@ static void patch_jmp(struct sk_compiler *compiler, size_t offset)
     size_t jmp_offset = compiler->current_chunk->count - offset - 2;
 
     if (jmp_offset > UINT16_MAX) {
-        fprintf(stderr, "Too long jump.\n");
+        compiler_error(compiler, "Too long jump.");
     }
 
     compiler->current_chunk->code[offset] = (jmp_offset >> 8) & 0xFF;
@@ -125,7 +135,8 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
             compile_print_statement(compiler, node);
             break;
         default:
-            fprintf(stderr, "Unexpected.\n");
+            compiler_error(compiler, "Unsupported statement.");
+            break;
     }
 }
 
@@ -183,7 +194,8 @@ static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node 
             compile_literal(compiler, node);
             break;
         default:
-            fprintf(stderr, "Unexpected.\n");
+            compiler_error(compiler, "Unsupported expression.");
+            break;
     }
 }
 
@@ -235,7 +247,8 @@ static void compile_binary(struct sk_compiler *compiler, struct sk_ast_node *nod
             emit2(compiler, SK_OP_NEQUAL, SK_OP_NOT);
             break;
         default:
-            fprintf(stderr, "Unexpected.\n");
+            compiler_error(compiler, "Unsupported binary operator.");
+            break;
     }
 }
 
@@ -274,7 +287,8 @@ static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node
             emit(compiler, SK_OP_NOT);
             break;
         default:
-            fprintf(stderr, "Unexpected.\n");
+            compiler_error(compiler, "Unsupported unary operator.");
+            break;
     }
 }
 
@@ -294,7 +308,8 @@ static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *no
             compile_string(compiler, &node->as.literal);
             break;
         default:
-            fprintf(stderr, "Unexpected.\n");
+            compiler_error(compiler, "Unsupported literal.");
+            break;
     }
 }
 
