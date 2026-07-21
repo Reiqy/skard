@@ -8,6 +8,8 @@ void sk_chunk_init(struct sk_chunk *chunk)
 {
     sk_value_array_init(&chunk->constants);
 
+    chunk->locals_count = 0;
+
     chunk->code = NULL;
     chunk->capacity = 0;
     chunk->count = 0;
@@ -80,11 +82,14 @@ void sk_vm_free(struct sk_vm *vm)
 }
 
 static enum sk_vm_result vm_loop(struct sk_vm *vm);
+static void reserve_stack_slots(struct sk_vm *vm, size_t count);
 
 enum sk_vm_result sk_vm_run(struct sk_vm *vm, struct sk_chunk *chunk)
 {
     vm->chunk = chunk;
     vm->ip = chunk->code;
+
+    reserve_stack_slots(vm, chunk->locals_count);
 
     return vm_loop(vm);
 }
@@ -143,12 +148,24 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 break;
 
             case SK_OP_NOTHING:
-                push(sk_nothing_value);
+                push(sk_nothing_value());
                 break;
 
             case SK_OP_CONST:
                 push(read_const());
                 break;
+
+            case SK_OP_LOAD_LOCAL: {
+                uint8_t slot = read_byte();
+                push(vm->stack.stack[slot]);
+                break;
+            }
+
+            case SK_OP_STORE_LOCAL: {
+                uint8_t slot = read_byte();
+                vm->stack.stack[slot] = pop();
+                break;
+            }
 
             case SK_OP_NNEG: {
                 sk_number a = sk_as_number(pop());
@@ -247,4 +264,14 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 #undef read_short
 #undef read_const
 #undef read_byte
+}
+
+static void reserve_stack_slots(struct sk_vm *vm, size_t count)
+{
+    struct sk_vm_stack *stack = &vm->stack;
+    for (size_t i = 0; i < count; i++) {
+        stack->stack[i] = sk_nothing_value();
+    }
+
+    stack->top = stack->stack + count;
 }

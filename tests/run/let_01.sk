@@ -1,0 +1,4 @@
+fn main() {
+    let value: Number = 42
+    print("%n", value)
+}

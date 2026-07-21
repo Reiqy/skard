@@ -6,6 +6,10 @@
 
 static void compiler_error(struct sk_compiler *compiler, const char *msg);
 
+static bool declare_local(struct sk_compiler *compiler, struct sk_token name, size_t *slot);
+
+static bool resolve_local(const struct sk_compiler *compiler, struct sk_token name, size_t *slot);
+
 static void emit(struct sk_compiler *compiler, uint8_t byte);
 static void emit2(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2);
 static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, uint8_t byte3);
@@ -23,6 +27,7 @@ static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *n
 
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
@@ -33,6 +38,7 @@ static void compile_binary(struct sk_compiler *compiler, struct sk_ast_node *nod
 static void compile_and(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_or(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node *node);
 
 static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_number(struct sk_compiler *compiler, struct sk_ast_literal *literal);
@@ -43,16 +49,67 @@ bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node,
     compiler->current_chunk = chunk;
     compiler->has_error = false;
 
+    sk_hashmap_init(&compiler->locals_map);
+    compiler->locals_count = 0;
+
     compile_program(compiler, node);
+    chunk->locals_count = compiler->locals_count;
     emit_halt(compiler);
 
-    return !compiler->has_error;
+    bool success = !compiler->has_error;
+
+    sk_hashmap_free(&compiler->locals_map);
+
+    return success;
 }
 
 static void compiler_error(struct sk_compiler *compiler, const char *msg)
 {
     fprintf(stderr, "%s\n", msg);
     compiler->has_error = true;
+}
+
+static bool declare_local(struct sk_compiler *compiler, struct sk_token name, size_t *slot)
+{
+    void *existing = NULL;
+
+    if (sk_hashmap_get(&compiler->locals_map, name.start, name.length, &existing)) {
+        // TODO: Shadowing.
+        compiler_error(compiler, "Local variable already declared.");
+        return false;
+    }
+
+    if (compiler->locals_count >= SK_COMPILER_MAX_LOCALS) {
+        compiler_error(compiler, "Too many local variables.");
+        return false;
+    }
+
+    struct sk_compiler_local *local = &compiler->locals[compiler->locals_count];
+
+    *slot = compiler->locals_count;
+    *local = (struct sk_compiler_local) {
+        .name = name,
+        .slot = *slot,
+    };
+
+    compiler->locals_count++;
+
+    sk_hashmap_set(&compiler->locals_map, name.start, name.length, local);
+
+    return true;
+}
+
+static bool resolve_local(const struct sk_compiler *compiler, struct sk_token name, size_t *slot)
+{
+    void *value = NULL;
+
+    if (!sk_hashmap_get(&compiler->locals_map, name.start, name.length, &value)) {
+        return false;
+    }
+
+    const struct sk_compiler_local *local = value;
+    *slot = local->slot;
+    return true;
 }
 
 static void emit(struct sk_compiler *compiler, uint8_t byte)
@@ -130,6 +187,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
         case SK_AST_BLOCK:
             compile_block(compiler, node);
             break;
+        case SK_AST_LET:
+            compile_let_statement(compiler, node);
+            break;
         case SK_AST_IF:
             compile_if_statement(compiler, node);
             break;
@@ -151,6 +211,23 @@ static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node
     for (size_t i = 0; i < block->contents.count; i++) {
         compile_statement(compiler, block->contents.nodes[i]);
     }
+}
+
+static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_let *let = &node->as.let;
+
+    compile_expression(compiler, let->expression);
+    if (compiler->has_error) {
+        return;
+    }
+
+    size_t slot;
+    if (!declare_local(compiler, let->name, &slot)) {
+        return;
+    }
+
+    emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
 }
 
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
@@ -212,6 +289,9 @@ static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node 
             break;
         case SK_AST_UNARY:
             compile_unary(compiler, node);
+            break;
+        case SK_AST_IDENTIFIER:
+            compile_identifier(compiler, node);
             break;
         case SK_AST_LITERAL:
             compile_literal(compiler, node);
@@ -313,6 +393,19 @@ static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node
             compiler_error(compiler, "Unsupported unary operator.");
             break;
     }
+}
+
+static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_identifier *identifier = &node->as.identifier;
+
+    size_t slot;
+    if (!resolve_local(compiler, identifier->token, &slot)) {
+        compiler_error(compiler, "Unknown local variable.");
+        return;
+    }
+
+    emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)slot);
 }
 
 static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *node)

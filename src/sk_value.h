@@ -25,7 +25,7 @@ struct sk_value {
 #define sk_as_string(value) ((struct sk_object_string *)value.as.object)
 #define sk_as_cstring(value) (sk_as_string(value))->chars
 
-#define sk_nothing_value ((struct sk_value) {0})
+#define sk_nothing_value() ((struct sk_value) {0})
 #define sk_number_value(value) ((struct sk_value) {.as.number = (value)})
 #define sk_boolean_value(value) ((struct sk_value) {.as.boolean = (value)})
 #define sk_object_value(value) ((struct sk_value) {.as.object = (sk_object *)(value)})

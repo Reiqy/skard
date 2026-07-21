@@ -15,6 +15,9 @@ enum sk_opcode {
     SK_OP_NOTHING,
     SK_OP_CONST,
 
+    SK_OP_LOAD_LOCAL,
+    SK_OP_STORE_LOCAL,
+
     SK_OP_NNEG,
     SK_OP_NADD,
     SK_OP_NSUB,
@@ -36,6 +39,7 @@ enum sk_opcode {
 
 struct sk_chunk {
     struct sk_value_array constants;
+    size_t locals_count;
     uint8_t *code;
     size_t capacity;
     size_t count;
