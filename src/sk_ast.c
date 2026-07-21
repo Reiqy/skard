@@ -106,6 +106,18 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
             print_parenthesized_expression(node->as.binary.right);
             printf(")");
             break;
+        case SK_AST_CALL:
+            print_parenthesized_expression(node->as.call.callee);
+            printf("(");
+            for (size_t i = 0; i < node->as.call.args->as.args.args.count; i++) {
+                if (i > 0) {
+                    printf(", ");
+                }
+
+                print_parenthesized_expression(node->as.call.args->as.args.args.nodes[i]);
+            }
+            printf(")");
+            break;
         default:
             fprintf(stderr, "Unexpected node type %d.", node->type);
             break;

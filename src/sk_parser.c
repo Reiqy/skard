@@ -16,6 +16,7 @@ static struct sk_ast_node *ast_binary_new(
     struct sk_token operator,
     struct sk_ast_node * left,
     struct sk_ast_node *right);
+static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_node *callee, struct sk_ast_node *args);
 
 static struct sk_ast_node *ast_args_new(struct sk_parser *parser);
 
@@ -98,6 +99,20 @@ static struct sk_ast_node *ast_binary_new(
     };
 
     return binary;
+}
+
+static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_node *callee, struct sk_ast_node *args)
+{
+    struct sk_ast_node *call = sk_ast_node_arena_alloc(&parser->arena);
+    *call = (struct sk_ast_node) {
+        .type = SK_AST_CALL,
+        .as.call = (struct sk_ast_call) {
+            .callee = callee,
+            .args = args,
+        },
+    };
+
+    return call;
 }
 
 static struct sk_ast_node *ast_args_new(struct sk_parser *parser)
@@ -221,6 +236,7 @@ static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_s
 static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser);
 
 static struct sk_ast_node *parse_args(struct sk_parser *parser);
+static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_node *callee);
 
 static struct sk_ast_node *parse_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_block(struct sk_parser *parser);
@@ -237,6 +253,7 @@ enum precedence {
     PREC_ADDITIVE,
     PREC_MULTIPLICATIVE,
     PREC_UNARY,
+    PREC_CALL,
 };
 
 static enum precedence get_precedence(enum sk_token_type token_type);
@@ -414,7 +431,7 @@ static struct sk_ast_node *parse_args(struct sk_parser *parser)
     struct sk_ast_node *args = ast_args_new(parser);
     while (!check(parser, SK_TOKEN_RPAREN) && !check(parser, SK_TOKEN_EOF)) {
         struct sk_ast_node *arg = parse_expression(parser);
-        if (args == NULL) {
+        if (arg == NULL) {
             return NULL;
         }
 
@@ -528,6 +545,8 @@ static enum precedence get_precedence(enum sk_token_type token_type)
         case SK_TOKEN_STAR:
         case SK_TOKEN_SLASH:
             return PREC_MULTIPLICATIVE;
+        case SK_TOKEN_LPAREN:
+            return PREC_CALL;
         default:
             return PREC_NONE;
     }
@@ -574,6 +593,10 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser)
 
 static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_node *left)
 {
+    if (check(parser, SK_TOKEN_LPAREN)) {
+        return parse_call(parser, left);
+    }
+
     advance(parser);
     switch (parser->previous.type) {
         case SK_TOKEN_PLUS:
@@ -593,6 +616,12 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
             error(parser, &parser->previous, "Expected binary expression.");
             return NULL;
     }
+}
+
+static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_node *callee)
+{
+    struct sk_ast_node *args = parse_args(parser);
+    return ast_call_new(parser, callee, args);
 }
 
 static struct sk_ast_node *parse_grouping(struct sk_parser *parser)

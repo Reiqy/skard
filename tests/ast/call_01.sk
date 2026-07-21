@@ -1,0 +1,6 @@
+fn identity(value: Number) -> Number {
+    return value
+}
+fn main() {
+    print("%n", identity(42))
+}

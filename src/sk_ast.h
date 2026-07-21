@@ -37,6 +37,7 @@ enum sk_ast_node_type {
     SK_AST_IDENTIFIER,
     SK_AST_UNARY,
     SK_AST_BINARY,
+    SK_AST_CALL,
 
     SK_AST_ARGS,
 
@@ -73,6 +74,11 @@ struct sk_ast_binary {
     struct sk_token operator;
     struct sk_ast_node *left;
     struct sk_ast_node *right;
+};
+
+struct sk_ast_call {
+    struct sk_ast_node *callee;
+    struct sk_ast_node *args;
 };
 
 struct sk_ast_args {
@@ -120,6 +126,7 @@ struct sk_ast_node {
         struct sk_ast_identifier identifier;
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
+        struct sk_ast_call call;
         struct sk_ast_args args;
         struct sk_ast_block block;
         struct sk_ast_if ifn;
