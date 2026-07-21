@@ -1,0 +1,5 @@
+program:
+  fn main()
+    {}
+      return
+        add(identity(add(2, 3)), add(3, identity(2)))
