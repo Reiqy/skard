@@ -25,7 +25,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
 static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 
+static void compile_expression_or_nothing(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_binary(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_and(struct sk_compiler *compiler, struct sk_ast_node *node);
@@ -134,6 +136,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
         case SK_AST_PRINT:
             compile_print_statement(compiler, node);
             break;
+        case SK_AST_RETURN:
+            compile_return_statement(compiler, node);
+            break;
         default:
             compiler_error(compiler, "Unsupported statement.");
             break;
@@ -179,6 +184,24 @@ static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_
     }
 
     emit(compiler, SK_OP_PRINT);
+}
+
+static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_return *returnn = &node->as.returnn;
+    struct sk_ast_node *expression = returnn->expression;
+    compile_expression_or_nothing(compiler, expression);
+    emit(compiler, SK_OP_RETURN);
+}
+
+static void compile_expression_or_nothing(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    if (node == NULL) {
+        emit(compiler, SK_OP_NOTHING);
+        return;
+    }
+
+    compile_expression(compiler, node);
 }
 
 static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node *node)

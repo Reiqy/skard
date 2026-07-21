@@ -103,6 +103,8 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
         switch (read_byte()) {
             case SK_OP_HALT:
                 return SK_VM_OK;
+            case SK_OP_RETURN:
+                return SK_VM_OK;
             case SK_OP_PRINT: {
                 // TODO: Eventually remove this temporary code.
                 const struct sk_object_string *template = sk_as_string(pop());
@@ -138,6 +140,10 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 
             case SK_OP_POP:
                 pop();
+                break;
+
+            case SK_OP_NOTHING:
+                push(sk_nothing_value);
                 break;
 
             case SK_OP_CONST:
