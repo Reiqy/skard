@@ -21,6 +21,11 @@ static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_
 static struct sk_ast_node *ast_args_new(struct sk_parser *parser);
 
 static struct sk_ast_node *ast_block_new(struct sk_parser *parser);
+static struct sk_ast_node *ast_let_new(
+    struct sk_parser *parser,
+    struct sk_token name,
+    struct sk_token type,
+    struct sk_ast_node *expression);
 static struct sk_ast_node *ast_if_new(
     struct sk_parser *parser,
     struct sk_ast_node *condition,
@@ -143,6 +148,25 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
     return block;
 }
 
+static struct sk_ast_node *ast_let_new(
+    struct sk_parser *parser,
+    struct sk_token name,
+    struct sk_token type,
+    struct sk_ast_node *expression)
+{
+    struct sk_ast_node *let = sk_ast_node_arena_alloc(&parser->arena);
+    *let = (struct sk_ast_node) {
+        .type = SK_AST_LET,
+        .as.let = (struct sk_ast_let) {
+            .name = name,
+            .type = type,
+            .expression = expression,
+        },
+    };
+
+    return let;
+}
+
 static struct sk_ast_node *ast_if_new(
     struct sk_parser *parser,
     struct sk_ast_node *condition,
@@ -240,6 +264,7 @@ static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_no
 
 static struct sk_ast_node *parse_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_block(struct sk_parser *parser);
+static struct sk_ast_node *parse_let_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_return_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
@@ -448,6 +473,10 @@ static struct sk_ast_node *parse_args(struct sk_parser *parser)
 
 static struct sk_ast_node *parse_statement(struct sk_parser *parser)
 {
+    if (check(parser, SK_TOKEN_LET)) {
+        return parse_let_statement(parser);
+    }
+
     if (check(parser, SK_TOKEN_IF)) {
         return parse_if_statement(parser);
     }
@@ -485,6 +514,28 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser)
 
     consume(parser, SK_TOKEN_RBRACE, "Expected '}'.");
     return block;
+}
+
+static struct sk_ast_node *parse_let_statement(struct sk_parser *parser)
+{
+    consume(parser, SK_TOKEN_LET, "Expected 'let'.");
+
+    consume(parser, SK_TOKEN_IDENTIFIER, "Expected variable name.");
+    struct sk_token name = parser->previous;
+
+    consume(parser, SK_TOKEN_COLON, "Expected ':' after variable name.");
+
+    consume(parser, SK_TOKEN_IDENTIFIER, "Expected variable type.");
+    struct sk_token type = parser->previous;
+
+    consume(parser, SK_TOKEN_ASSIGN, "Expected '=' after variable type.");
+
+    struct sk_ast_node *expression = parse_expression(parser);
+    if (expression == NULL) {
+        return NULL;
+    }
+
+    return ast_let_new(parser, name, type, expression);
 }
 
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser)

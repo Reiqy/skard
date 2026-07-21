@@ -66,6 +66,7 @@ static void print_parenthesized_expression(const struct sk_ast_node *node);
 static void print_args(const struct sk_ast_node *node, int depth);
 
 static void print_block(const struct sk_ast_node *node, int depth);
+static void print_let(const struct sk_ast_node *node, int depth);
 static void print_if(const struct sk_ast_node *node, int depth);
 static void print_return(const struct sk_ast_node *node, int depth);
 static void print_print(const struct sk_ast_node *node, int depth);
@@ -142,6 +143,18 @@ static void print_block(const struct sk_ast_node *node, int depth)
     for (size_t i = 0; i < node->as.block.contents.count; i++) {
         ast_node_print_impl(node->as.block.contents.nodes[i], depth + 1);
     }
+}
+
+static void print_let(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf(
+        "let %.*s: %.*s\n",
+        (int)node->as.let.name.length,
+        node->as.let.name.start,
+        (int)node->as.let.type.length,
+        node->as.let.type.start);
+    print_expression(node->as.let.expression, depth + 1);
 }
 
 static void print_if(const struct sk_ast_node *node, int depth)
@@ -224,6 +237,9 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
     switch (node->type) {
         case SK_AST_BLOCK:
             print_block(node, depth);
+            break;
+        case SK_AST_LET:
+            print_let(node, depth);
             break;
         case SK_AST_IF:
             print_if(node, depth);
