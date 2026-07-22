@@ -28,6 +28,7 @@ static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *n
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
@@ -190,6 +191,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
         case SK_AST_LET:
             compile_let_statement(compiler, node);
             break;
+        case SK_AST_ASSIGN:
+            compile_assign_statement(compiler, node);
+            break;
         case SK_AST_IF:
             compile_if_statement(compiler, node);
             break;
@@ -224,6 +228,24 @@ static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_no
 
     size_t slot;
     if (!declare_local(compiler, let->name, &slot)) {
+        return;
+    }
+
+    emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
+}
+
+static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    struct sk_ast_assign *assign = &node->as.assign;
+
+    compile_expression(compiler, assign->expression);
+    if (compiler->has_error) {
+        return;
+    }
+
+    size_t slot;
+    if (!resolve_local(compiler, assign->name, &slot)) {
+        compiler_error(compiler, "Unknown local variable.");
         return;
     }
 

@@ -1,0 +1,4 @@
+fn main() {
+    let a: Number = 0
+    a = 1
+}

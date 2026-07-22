@@ -44,6 +44,7 @@ enum sk_ast_node_type {
     // Statements
     SK_AST_BLOCK,
     SK_AST_LET,
+    SK_AST_ASSIGN,
     SK_AST_IF,
     SK_AST_RETURN,
     SK_AST_PRINT,
@@ -96,6 +97,10 @@ struct sk_ast_let {
     struct sk_ast_node *expression;
 };
 
+struct sk_ast_assign {
+    struct sk_token name;
+    struct sk_ast_node *expression;
+};
 
 struct sk_ast_if {
     struct sk_ast_node *condition;
@@ -138,6 +143,7 @@ struct sk_ast_node {
         struct sk_ast_args args;
         struct sk_ast_block block;
         struct sk_ast_let let;
+        struct sk_ast_assign assign;
         struct sk_ast_if ifn;
         struct sk_ast_return returnn;
         struct sk_ast_print print;

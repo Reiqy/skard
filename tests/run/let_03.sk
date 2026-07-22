@@ -1,0 +1,8 @@
+fn main() {
+    let a: Number = 1
+    print("%n", a)
+    a = a * 2
+    print("%n", a)
+    a = a * 2
+    print("%n", a)
+}
