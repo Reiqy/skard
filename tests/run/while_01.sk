@@ -1,0 +1,7 @@
+fn main() {
+    let a: Number = 0
+    while (a < 3) {
+        print("%n", a)
+        a = a + 1
+    }
+}

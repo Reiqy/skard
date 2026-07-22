@@ -46,6 +46,7 @@ enum sk_ast_node_type {
     SK_AST_LET,
     SK_AST_ASSIGN,
     SK_AST_IF,
+    SK_AST_WHILE,
     SK_AST_RETURN,
     SK_AST_PRINT,
 
@@ -108,6 +109,11 @@ struct sk_ast_if {
     struct sk_ast_node *else_branch;
 };
 
+struct sk_ast_while {
+    struct sk_ast_node *condition;
+    struct sk_ast_node *body;
+};
+
 struct sk_ast_return {
     struct sk_ast_node *expression;
 };
@@ -145,6 +151,7 @@ struct sk_ast_node {
         struct sk_ast_let let;
         struct sk_ast_assign assign;
         struct sk_ast_if ifn;
+        struct sk_ast_while whilen;
         struct sk_ast_return returnn;
         struct sk_ast_print print;
         struct sk_ast_fn fn;

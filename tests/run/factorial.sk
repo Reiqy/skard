@@ -1,0 +1,12 @@
+fn main() {
+    let n: Number = 10
+    let c: Number = 1
+    let factorial: Number = 1
+
+    while (c <= n) {
+        factorial = factorial * c
+        c = c + 1
+    }
+
+    print("%n! = %n", n, factorial)
+}

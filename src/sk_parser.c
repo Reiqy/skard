@@ -35,6 +35,10 @@ static struct sk_ast_node *ast_if_new(
     struct sk_ast_node *condition,
     struct sk_ast_node *then_branch,
     struct sk_ast_node *else_branch);
+static struct sk_ast_node *ast_while_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *condition,
+    struct sk_ast_node *body);
 static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression);
 static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args);
 
@@ -207,6 +211,23 @@ static struct sk_ast_node *ast_if_new(
     return ifn;
 }
 
+static struct sk_ast_node *ast_while_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *condition,
+    struct sk_ast_node *body)
+{
+    struct sk_ast_node *whilen = sk_ast_node_arena_alloc(&parser->arena);
+    *whilen = (struct sk_ast_node) {
+        .type = SK_AST_WHILE,
+        .as.whilen = (struct sk_ast_while) {
+            .condition = condition,
+            .body = body,
+        }
+    };
+
+    return whilen;
+}
+
 static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression)
 {
     struct sk_ast_node *returnn = sk_ast_node_arena_alloc(&parser->arena);
@@ -288,6 +309,7 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser);
 static struct sk_ast_node *parse_let_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_assign_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_if_statement(struct sk_parser *parser);
+static struct sk_ast_node *parse_while_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_return_statement(struct sk_parser *parser);
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser);
 
@@ -508,6 +530,10 @@ static struct sk_ast_node *parse_statement(struct sk_parser *parser)
         return parse_if_statement(parser);
     }
 
+    if (check(parser, SK_TOKEN_WHILE)) {
+        return parse_while_statement(parser);
+    }
+
     if (check(parser, SK_TOKEN_RETURN)) {
         return parse_return_statement(parser);
     }
@@ -595,6 +621,18 @@ static struct sk_ast_node *parse_if_statement(struct sk_parser *parser)
 
     struct sk_ast_node *else_branch = parse_statement(parser);
     return ast_if_new(parser, condition, then_branch, else_branch);
+}
+
+static struct sk_ast_node *parse_while_statement(struct sk_parser *parser)
+{
+    consume(parser, SK_TOKEN_WHILE, "Expected 'while'.");
+
+    consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
+    struct sk_ast_node *condition = parse_expression(parser);
+    consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
+    struct sk_ast_node *body = parse_statement(parser);
+
+    return ast_while_new(parser, condition, body);
 }
 
 static struct sk_ast_node *parse_return_statement(struct sk_parser *parser)

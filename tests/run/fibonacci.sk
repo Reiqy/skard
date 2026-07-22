@@ -1,0 +1,15 @@
+fn main() {
+    let n: Number = 10
+    let a: Number = 0
+    let b: Number = 1
+    let c: Number = 0
+
+    while (c < n) {
+        let next: Number = a + b
+        a = b
+        b = next
+        c = c + 1
+    }
+
+    print("fib(%n) = %n", n, a)
+}

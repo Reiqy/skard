@@ -33,6 +33,7 @@ enum sk_opcode {
     SK_OP_NOT,
 
     SK_OP_JMP,
+    SK_OP_JMP_BACK,
     SK_OP_JMP_TRUE,
     SK_OP_JMP_FALSE,
 };

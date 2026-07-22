@@ -69,6 +69,7 @@ static void print_block(const struct sk_ast_node *node, int depth);
 static void print_let(const struct sk_ast_node *node, int depth);
 static void print_assign(const struct sk_ast_node *node, int depth);
 static void print_if(const struct sk_ast_node *node, int depth);
+static void print_while(const struct sk_ast_node *node, int depth);
 static void print_return(const struct sk_ast_node *node, int depth);
 static void print_print(const struct sk_ast_node *node, int depth);
 static void print_fn(const struct sk_ast_node *node, int depth);
@@ -180,6 +181,14 @@ static void print_if(const struct sk_ast_node *node, int depth)
     ast_node_print_impl(node->as.ifn.else_branch, depth + 1);
 }
 
+static void print_while(const struct sk_ast_node *node, int depth)
+{
+    print_indent(depth);
+    printf("while\n");
+    print_expression(node->as.whilen.condition, depth + 1);
+    ast_node_print_impl(node->as.whilen.body, depth + 1);
+}
+
 static void print_return(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
@@ -254,6 +263,9 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
             break;
         case SK_AST_IF:
             print_if(node, depth);
+            break;
+        case SK_AST_WHILE:
+            print_while(node, depth);
             break;
         case SK_AST_RETURN:
             print_return(node, depth);

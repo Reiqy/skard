@@ -235,6 +235,11 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 vm->ip += offset;
                 break;
             }
+            case SK_OP_JMP_BACK: {
+                uint16_t offset = read_short();
+                vm->ip -= offset;
+                break;
+            }
             case SK_OP_JMP_TRUE: {
                 uint16_t offset = read_short();
                 sk_bool a = sk_as_boolean(peek(0));

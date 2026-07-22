@@ -17,6 +17,7 @@ static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, ui
 static void emit_halt(struct sk_compiler *compiler);
 static void emit_const(struct sk_compiler *compiler, struct sk_value constant);
 static size_t emit_jmp(struct sk_compiler *compiler, uint8_t instruction);
+static void emit_jmp_back(struct sk_compiler *compiler, size_t target_offset);
 
 static void patch_jmp(struct sk_compiler *compiler, size_t offset);
 
@@ -30,6 +31,7 @@ static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node
 static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_while_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 
@@ -147,6 +149,20 @@ static size_t emit_jmp(struct sk_compiler *compiler, uint8_t instruction)
     return compiler->current_chunk->count - 2;
 }
 
+static void emit_jmp_back(struct sk_compiler *compiler, size_t target_offset)
+{
+    emit(compiler, SK_OP_JMP_BACK);
+
+    size_t offset = compiler->current_chunk->count - target_offset + 2;
+    if (offset > UINT16_MAX) {
+        compiler_error(compiler, "Too long jump.");
+        return;
+    }
+
+    emit(compiler, (offset >> 8) & 0xFF);
+    emit(compiler, offset & 0xFF);
+}
+
 static void patch_jmp(struct sk_compiler *compiler, size_t offset)
 {
     size_t jmp_offset = compiler->current_chunk->count - offset - 2;
@@ -196,6 +212,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
             break;
         case SK_AST_IF:
             compile_if_statement(compiler, node);
+            break;
+        case SK_AST_WHILE:
+            compile_while_statement(compiler, node);
             break;
         case SK_AST_PRINT:
             compile_print_statement(compiler, node);
@@ -272,6 +291,23 @@ static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_nod
     }
 
     patch_jmp(compiler, else_branch_jmp);
+}
+
+static void compile_while_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    size_t loop_start = compiler->current_chunk->count;
+
+    compile_expression(compiler, node->as.whilen.condition);
+
+    size_t exit_jmp = emit_jmp(compiler, SK_OP_JMP_FALSE);
+
+    emit(compiler, SK_OP_POP);
+    compile_statement(compiler, node->as.whilen.body);
+
+    emit_jmp_back(compiler, loop_start);
+
+    patch_jmp(compiler, exit_jmp);
+    emit(compiler, SK_OP_POP);
 }
 
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node)

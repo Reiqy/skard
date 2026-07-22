@@ -1,0 +1,9 @@
+program:
+  fn main()
+    {}
+      while
+        true
+        {}
+          print
+            ()
+              "Looping..."
