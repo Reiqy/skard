@@ -27,7 +27,11 @@ add_executable(skard
         src/sk_object.c
         src/sk_object.h
         src/sk_hashmap.c
-        src/sk_hashmap.h)
+        src/sk_hashmap.h
+        src/sk_type.c
+        src/sk_type.h
+        src/sk_checker.c
+        src/sk_checker.h)
 target_compile_options(skard PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 find_program(CLANG_FORMAT clang-format)
