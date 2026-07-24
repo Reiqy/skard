@@ -103,7 +103,20 @@ void sk_checker_free(struct sk_checker *checker)
     checker->has_error = false;
 }
 
-bool sk_checker_check(struct sk_checker *checker)
+bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root)
 {
+    checker->has_error = false;
+
+    if (root == NULL || root->type != SK_AST_PROGRAM) {
+        checker->has_error = true;
+        return false;
+    }
+
+    const struct sk_ast_program *program = &root->as.program;
+    for (size_t i = 0; i < program->declarations.count; i++) {
+        const struct sk_ast_node *declaration = program->declarations.nodes[i];
+        (void)declaration;
+    }
+
     return !checker->has_error;
 }

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "sk_ast.h"
 #include "sk_hashmap.h"
 #include "sk_lexer.h"
 #include "sk_type.h"
@@ -66,6 +67,6 @@ struct sk_checker {
 
 void sk_checker_init(struct sk_checker *checker);
 void sk_checker_free(struct sk_checker *checker);
-bool sk_checker_check(struct sk_checker *checker);
+bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root);
 
 #endif // SKARD_SK_CHECKER_H

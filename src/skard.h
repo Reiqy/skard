@@ -2,6 +2,7 @@
 #define SKARD_SKARD_H
 
 #include "sk_ast.h"
+#include "sk_checker.h"
 #include "sk_compiler.h"
 #include "sk_debug.h"
 #include "sk_hashmap.h"

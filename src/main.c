@@ -87,18 +87,31 @@ static int file(const char *filename)
         return EXIT_FAILURE;
     }
 
+    struct sk_checker checker;
+    sk_checker_init(&checker);
+
+    bool checked = sk_checker_check(&checker, ast);
+    if (!checked) {
+        sk_checker_free(&checker);
+        sk_parser_free(&parser);
+        free(source);
+        return EXIT_FAILURE;
+    }
+
     struct sk_chunk chunk;
     sk_chunk_init(&chunk);
 
     struct sk_compiler compiler;
     bool compiled = sk_compiler_compile(&compiler, ast, &chunk);
     if (!compiled) {
+        sk_checker_free(&checker);
         sk_parser_free(&parser);
         sk_chunk_free(&chunk);
         free(source);
         return EXIT_FAILURE;
     }
 
+    sk_checker_free(&checker);
     sk_parser_free(&parser);
 
     struct sk_vm vm;
