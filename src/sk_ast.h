@@ -56,6 +56,9 @@ enum sk_ast_node_type {
     // Program
     SK_AST_PROGRAM,
 
+    // Type
+    SK_AST_TYPE,
+
     // Error
     SK_AST_ERR,
 };
@@ -134,6 +137,21 @@ struct sk_ast_program {
     struct sk_ast_node_array declarations;
 };
 
+enum sk_ast_type_kind {
+    SK_AST_TYPE_NAME,
+};
+
+struct sk_ast_type_name {
+    struct sk_token name;
+};
+
+struct sk_ast_type {
+    enum sk_ast_type_kind kind;
+    union {
+        struct sk_ast_type_name name;
+    } as;
+};
+
 struct sk_ast_err {
     const char *message;
 };
@@ -156,6 +174,9 @@ struct sk_ast_node {
         struct sk_ast_print print;
         struct sk_ast_fn fn;
         struct sk_ast_program program;
+
+        struct sk_ast_type type;
+
         struct sk_ast_err err;
     } as;
 };

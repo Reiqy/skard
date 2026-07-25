@@ -1,5 +1,8 @@
 #include "sk_checker.h"
 
+#include <stdio.h>
+#include <string.h>
+
 #include "sk_memory.h"
 
 static struct sk_symbol_arena_block *symbol_arena_add_block(struct sk_symbol_arena *arena, size_t capacity);
@@ -103,20 +106,160 @@ void sk_checker_free(struct sk_checker *checker)
     checker->has_error = false;
 }
 
+static struct sk_type *resolve_type_expr(struct sk_checker *checker, const struct sk_ast_type *type_expr);
+static struct sk_type *resolve_type_name_expr(struct sk_checker *checker, const struct sk_ast_type_name *type_expr);
+static bool token_equals(const struct sk_token *token, const char *text);
+static struct sk_type *make_type(struct sk_checker *checker, enum sk_type_kind kind);
+static void checker_error(struct sk_checker *checker, const char *message);
+
+static void collect_declaration(struct sk_checker *checker, const struct sk_ast_node *node);
+static void collect_function(struct sk_checker *checker, const struct sk_ast_node *node);
+
 bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root)
 {
     checker->has_error = false;
 
     if (root == NULL || root->type != SK_AST_PROGRAM) {
-        checker->has_error = true;
+        checker_error(checker, "Expected a program node.");
         return false;
     }
 
     const struct sk_ast_program *program = &root->as.program;
     for (size_t i = 0; i < program->declarations.count; i++) {
         const struct sk_ast_node *declaration = program->declarations.nodes[i];
-        (void)declaration;
+
+        if (declaration == NULL) {
+            checker_error(checker, "Missing top level declaration.");
+            continue;
+        }
+
+        collect_declaration(checker, declaration);
     }
 
     return !checker->has_error;
+}
+
+static struct sk_type *resolve_type_expr(struct sk_checker *checker, const struct sk_ast_type *type_expr)
+{
+    if (type_expr == NULL) {
+        checker_error(checker, "Missing type expression.");
+        return make_type(checker, SK_TYPE_INVALID);
+    }
+
+    switch (type_expr->kind) {
+        case SK_AST_TYPE_NAME:
+            return resolve_type_name_expr(checker, &type_expr->as.name);
+        default:
+            checker_error(checker, "Unsupported type expression.");
+            return make_type(checker, SK_TYPE_INVALID);
+    }
+}
+
+static struct sk_type *resolve_type_name_expr(struct sk_checker *checker, const struct sk_ast_type_name *type_expr)
+{
+    if (type_expr != NULL) {
+        if (token_equals(&type_expr->name, "Number")) {
+            return make_type(checker, SK_TYPE_NUMBER);
+        }
+
+        if (token_equals(&type_expr->name, "Boolean")) {
+            return make_type(checker, SK_TYPE_BOOLEAN);
+        }
+
+        if (token_equals(&type_expr->name, "String")) {
+            return make_type(checker, SK_TYPE_STRING);
+        }
+
+        if (token_equals(&type_expr->name, "Nothing")) {
+            return make_type(checker, SK_TYPE_NOTHING);
+        }
+    }
+
+    checker_error(checker, "Unknown type name.");
+    return make_type(checker, SK_TYPE_INVALID);
+}
+
+static void collect_declaration(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    switch (node->type) {
+        case SK_AST_FN:
+            collect_function(checker, node);
+            break;
+        default:
+            checker_error(checker, "Unsupported top level declaration.");
+            break;
+    }
+}
+
+static void collect_function(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    const struct sk_ast_fn *function = &node->as.fn;
+    struct sk_type *function_type = make_type(checker, SK_TYPE_FUNCTION);
+
+    function_type->as.function.parameters.count = function->parameters.count;
+    function_type->as.function.parameters.capacity = function->parameters.count;
+    function_type->as.function.parameters.types = sk_type_arena_alloc_array(
+        &checker->type_arena,
+        function->parameters.count);
+
+    for (size_t i = 0; i < function->parameters.count; i++) {
+        const struct sk_token parameter_type = function->parameters.parameters[i].type;
+        const struct sk_ast_type type_expr = {
+            .kind = SK_AST_TYPE_NAME,
+            .as.name = {
+                .name = parameter_type,
+            },
+        };
+
+        struct sk_type *resolved_type = resolve_type_expr(checker, &type_expr);
+        function_type->as.function.parameters.types[i] = *resolved_type;
+    }
+
+    if (function->has_return_type) {
+        const struct sk_ast_type type_expr = {
+            .kind = SK_AST_TYPE_NAME,
+            .as.name = {
+                .name = function->return_type,
+            },
+        };
+
+        function_type->as.function.return_type = resolve_type_expr(checker, &type_expr);
+    } else {
+        function_type->as.function.return_type = make_type(checker, SK_TYPE_NOTHING);
+    }
+
+    const struct sk_symbol symbol = {
+        .name = function->name,
+        .type = SK_SYMBOL_FN_OVERLOADS,
+        .as.fn_overloads = {
+            .overloads = {
+                .type = function_type,
+            },
+        },
+    };
+
+    if (!sk_symbol_table_add(&checker->symbols, symbol)) {
+        checker_error(checker, "Function already declared.");
+    }
+}
+
+static bool token_equals(const struct sk_token *token, const char *text)
+{
+    const size_t length = strlen(text);
+    return token->length == length && memcmp(token->start, text, length) == 0;
+}
+
+static struct sk_type *make_type(struct sk_checker *checker, enum sk_type_kind kind)
+{
+    struct sk_type *type = sk_type_arena_alloc(&checker->type_arena);
+    *type = (struct sk_type) {
+        .kind = kind,
+    };
+    return type;
+}
+
+static void checker_error(struct sk_checker *checker, const char *message)
+{
+    fprintf(stderr, "Semantic error: %s\n", message);
+    checker->has_error = true;
 }
