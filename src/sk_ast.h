@@ -16,9 +16,24 @@ void sk_ast_node_array_init(struct sk_ast_node_array *array);
 void sk_ast_node_array_free(struct sk_ast_node_array *array);
 void sk_ast_node_array_add(struct sk_ast_node_array *array, struct sk_ast_node *node);
 
+enum sk_ast_type_kind {
+    SK_AST_TYPE_NAME,
+};
+
+struct sk_ast_type_name {
+    struct sk_token name;
+};
+
+struct sk_ast_type {
+    enum sk_ast_type_kind kind;
+    union {
+        struct sk_ast_type_name name;
+    } as;
+};
+
 struct sk_ast_parameter {
     struct sk_token name;
-    struct sk_token type;
+    struct sk_ast_type type;
 };
 
 struct sk_ast_parameter_array {
@@ -97,7 +112,7 @@ struct sk_ast_block {
 
 struct sk_ast_let {
     struct sk_token name;
-    struct sk_token type;
+    struct sk_ast_type type;
     struct sk_ast_node *expression;
 };
 
@@ -129,27 +144,12 @@ struct sk_ast_fn {
     struct sk_token name;
     struct sk_ast_parameter_array parameters;
     bool has_return_type;
-    struct sk_token return_type;
+    struct sk_ast_type return_type;
     struct sk_ast_node *body;
 };
 
 struct sk_ast_program {
     struct sk_ast_node_array declarations;
-};
-
-enum sk_ast_type_kind {
-    SK_AST_TYPE_NAME,
-};
-
-struct sk_ast_type_name {
-    struct sk_token name;
-};
-
-struct sk_ast_type {
-    enum sk_ast_type_kind kind;
-    union {
-        struct sk_ast_type_name name;
-    } as;
 };
 
 struct sk_ast_err {

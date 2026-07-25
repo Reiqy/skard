@@ -203,27 +203,12 @@ static void collect_function(struct sk_checker *checker, const struct sk_ast_nod
         function->parameters.count);
 
     for (size_t i = 0; i < function->parameters.count; i++) {
-        const struct sk_token parameter_type = function->parameters.parameters[i].type;
-        const struct sk_ast_type type_expr = {
-            .kind = SK_AST_TYPE_NAME,
-            .as.name = {
-                .name = parameter_type,
-            },
-        };
-
-        struct sk_type *resolved_type = resolve_type_expr(checker, &type_expr);
+        struct sk_type *resolved_type = resolve_type_expr(checker, &function->parameters.parameters[i].type);
         function_type->as.function.parameters.types[i] = *resolved_type;
     }
 
     if (function->has_return_type) {
-        const struct sk_ast_type type_expr = {
-            .kind = SK_AST_TYPE_NAME,
-            .as.name = {
-                .name = function->return_type,
-            },
-        };
-
-        function_type->as.function.return_type = resolve_type_expr(checker, &type_expr);
+        function_type->as.function.return_type = resolve_type_expr(checker, &function->return_type);
     } else {
         function_type->as.function.return_type = make_type(checker, SK_TYPE_NOTHING);
     }

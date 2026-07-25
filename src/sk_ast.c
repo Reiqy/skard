@@ -62,6 +62,7 @@ static void print_null_node(int depth);
 
 static void print_expression(const struct sk_ast_node *node, int depth);
 static void print_parenthesized_expression(const struct sk_ast_node *node);
+static void print_type(const struct sk_ast_type *type);
 
 static void print_args(const struct sk_ast_node *node, int depth);
 
@@ -127,6 +128,18 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
     }
 }
 
+static void print_type(const struct sk_ast_type *type)
+{
+    switch (type->kind) {
+        case SK_AST_TYPE_NAME:
+            printf("%.*s", (int)type->as.name.name.length, type->as.name.name.start);
+            break;
+        default:
+            printf("<unknown type>");
+            break;
+    }
+}
+
 static void print_args(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
@@ -150,12 +163,9 @@ static void print_block(const struct sk_ast_node *node, int depth)
 static void print_let(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
-    printf(
-        "let %.*s: %.*s\n",
-        (int)node->as.let.name.length,
-        node->as.let.name.start,
-        (int)node->as.let.type.length,
-        node->as.let.type.start);
+    printf("let %.*s: ", (int)node->as.let.name.length, node->as.let.name.start);
+    print_type(&node->as.let.type);
+    printf("\n");
     print_expression(node->as.let.expression, depth + 1);
 }
 
@@ -217,17 +227,14 @@ static void print_fn(const struct sk_ast_node *node, int depth)
         }
 
         struct sk_ast_parameter *parameter = &node->as.fn.parameters.parameters[i];
-        printf(
-            "%.*s: %.*s",
-            (int)parameter->name.length,
-            parameter->name.start,
-            (int)parameter->type.length,
-            parameter->type.start);
+        printf("%.*s: ", (int)parameter->name.length, parameter->name.start);
+        print_type(&parameter->type);
     }
 
     printf(")");
     if (node->as.fn.has_return_type) {
-        printf(" -> %.*s", (int)node->as.fn.return_type.length, node->as.fn.return_type.start);
+        printf(" -> ");
+        print_type(&node->as.fn.return_type);
     }
 
     printf("\n");
