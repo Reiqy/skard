@@ -16,9 +16,10 @@ static struct sk_ast_node *ast_binary_new(
     struct sk_token operator,
     struct sk_ast_node * left,
     struct sk_ast_node *right);
-static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_node *callee, struct sk_ast_node *args);
-
-static struct sk_ast_node *ast_args_new(struct sk_parser *parser);
+static struct sk_ast_node *ast_call_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *callee,
+    struct sk_ast_node_array args);
 
 static struct sk_ast_node *ast_block_new(struct sk_parser *parser);
 static struct sk_ast_node *ast_let_new(
@@ -42,7 +43,7 @@ static struct sk_ast_node *ast_while_new(
     struct sk_ast_node *condition,
     struct sk_ast_node *body);
 static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression);
-static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args);
+static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node_array args);
 
 static struct sk_ast_node *ast_fn_new(
     struct sk_parser *parser,
@@ -116,7 +117,10 @@ static struct sk_ast_node *ast_binary_new(
     return binary;
 }
 
-static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_node *callee, struct sk_ast_node *args)
+static struct sk_ast_node *ast_call_new(
+    struct sk_parser *parser,
+    struct sk_ast_node *callee,
+    struct sk_ast_node_array args)
 {
     struct sk_ast_node *call = sk_ast_node_arena_alloc(&parser->arena);
     *call = (struct sk_ast_node) {
@@ -128,20 +132,6 @@ static struct sk_ast_node *ast_call_new(struct sk_parser *parser, struct sk_ast_
     };
 
     return call;
-}
-
-static struct sk_ast_node *ast_args_new(struct sk_parser *parser)
-{
-    struct sk_ast_args inner = {0};
-    struct sk_ast_node *block = sk_ast_node_arena_alloc(&parser->arena);
-    *block = (struct sk_ast_node) {
-        .type = SK_AST_ARGS,
-        .as.args = inner,
-    };
-
-    sk_ast_node_array_init(&block->as.args.args);
-
-    return block;
 }
 
 static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
@@ -246,7 +236,7 @@ static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_as
     return returnn;
 }
 
-static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node *args)
+static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node_array args)
 {
     struct sk_ast_node *print = sk_ast_node_arena_alloc(&parser->arena);
     *print = (struct sk_ast_node) {
@@ -308,7 +298,7 @@ static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_s
 static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser);
 static struct sk_ast_type parse_type(struct sk_parser *parser, const char *message);
 
-static struct sk_ast_node *parse_args(struct sk_parser *parser);
+static struct sk_ast_node_array parse_args(struct sk_parser *parser);
 static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_node *callee);
 
 static struct sk_ast_node *parse_statement(struct sk_parser *parser);
@@ -499,17 +489,18 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
     return ast_fn_new(parser, name, parameters, has_return_type, return_type, body);
 }
 
-static struct sk_ast_node *parse_args(struct sk_parser *parser)
+static struct sk_ast_node_array parse_args(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
-    struct sk_ast_node *args = ast_args_new(parser);
+    struct sk_ast_node_array args;
+    sk_ast_node_array_init(&args);
     while (!check(parser, SK_TOKEN_RPAREN) && !check(parser, SK_TOKEN_EOF)) {
         struct sk_ast_node *arg = parse_expression(parser);
         if (arg == NULL) {
-            return NULL;
+            return args;
         }
 
-        sk_ast_node_array_add(&args->as.args.args, arg);
+        sk_ast_node_array_add(&args, arg);
 
         if (!match(parser, SK_TOKEN_COMMA)) {
             break;
@@ -661,7 +652,7 @@ static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_PRINT, "Expected 'print'.");
 
-    struct sk_ast_node *args = parse_args(parser);
+    struct sk_ast_node_array args = parse_args(parser);
     return ast_print_new(parser, args);
 }
 
@@ -761,7 +752,7 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
 
 static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_node *callee)
 {
-    struct sk_ast_node *args = parse_args(parser);
+    struct sk_ast_node_array args = parse_args(parser);
     return ast_call_new(parser, callee, args);
 }
 

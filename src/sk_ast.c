@@ -64,7 +64,7 @@ static void print_expression(const struct sk_ast_node *node, int depth);
 static void print_parenthesized_expression(const struct sk_ast_node *node);
 static void print_type(const struct sk_ast_type *type);
 
-static void print_args(const struct sk_ast_node *node, int depth);
+static void print_args(const struct sk_ast_node_array *args, int depth);
 
 static void print_block(const struct sk_ast_node *node, int depth);
 static void print_let(const struct sk_ast_node *node, int depth);
@@ -113,12 +113,12 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
         case SK_AST_CALL:
             print_parenthesized_expression(node->as.call.callee);
             printf("(");
-            for (size_t i = 0; i < node->as.call.args->as.args.args.count; i++) {
+            for (size_t i = 0; i < node->as.call.args.count; i++) {
                 if (i > 0) {
                     printf(", ");
                 }
 
-                print_parenthesized_expression(node->as.call.args->as.args.args.nodes[i]);
+                print_parenthesized_expression(node->as.call.args.nodes[i]);
             }
             printf(")");
             break;
@@ -140,13 +140,13 @@ static void print_type(const struct sk_ast_type *type)
     }
 }
 
-static void print_args(const struct sk_ast_node *node, int depth)
+static void print_args(const struct sk_ast_node_array *args, int depth)
 {
     print_indent(depth);
     printf("()\n");
 
-    for (size_t i = 0; i < node->as.args.args.count; i++) {
-        print_expression(node->as.args.args.nodes[i], depth + 1);
+    for (size_t i = 0; i < args->count; i++) {
+        print_expression(args->nodes[i], depth + 1);
     }
 }
 
@@ -218,7 +218,7 @@ static void print_print(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
     printf("print\n");
-    print_args(node->as.print.args, depth + 1);
+    print_args(&node->as.print.args, depth + 1);
 }
 
 static void print_fn(const struct sk_ast_node *node, int depth)

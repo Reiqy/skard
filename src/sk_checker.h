@@ -78,6 +78,7 @@ struct sk_checker {
     struct sk_type_arena type_arena;
     struct sk_scope global_scope;
     struct sk_scope *current_scope;
+    const struct sk_type *current_function_type;
 };
 
 void sk_checker_init(struct sk_checker *checker);

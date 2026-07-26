@@ -12,6 +12,7 @@ struct sk_type_array {
 
 enum sk_type_kind {
     SK_TYPE_INVALID,
+    SK_TYPE_UNKNOWN,
     SK_TYPE_NOTHING,
     SK_TYPE_NUMBER,
     SK_TYPE_BOOLEAN,

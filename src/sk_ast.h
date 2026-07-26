@@ -54,8 +54,6 @@ enum sk_ast_node_type {
     SK_AST_BINARY,
     SK_AST_CALL,
 
-    SK_AST_ARGS,
-
     // Statements
     SK_AST_BLOCK,
     SK_AST_LET,
@@ -99,10 +97,6 @@ struct sk_ast_binary {
 
 struct sk_ast_call {
     struct sk_ast_node *callee;
-    struct sk_ast_node *args;
-};
-
-struct sk_ast_args {
     struct sk_ast_node_array args;
 };
 
@@ -139,7 +133,7 @@ struct sk_ast_return {
 };
 
 struct sk_ast_print {
-    struct sk_ast_node *args;
+    struct sk_ast_node_array args;
 };
 
 struct sk_ast_fn {
@@ -166,7 +160,6 @@ struct sk_ast_node {
         struct sk_ast_unary unary;
         struct sk_ast_binary binary;
         struct sk_ast_call call;
-        struct sk_ast_args args;
         struct sk_ast_block block;
         struct sk_ast_let let;
         struct sk_ast_assign assign;

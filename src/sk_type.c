@@ -88,6 +88,7 @@ bool sk_type_equal(const struct sk_type *left, const struct sk_type *right)
     }
 
     switch (left->kind) {
+        case SK_TYPE_UNKNOWN:
         case SK_TYPE_NOTHING:
         case SK_TYPE_NUMBER:
         case SK_TYPE_BOOLEAN:
