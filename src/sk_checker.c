@@ -92,16 +92,30 @@ bool sk_symbol_table_add(struct sk_symbol_table *table, struct sk_symbol symbol)
     return true;
 }
 
+void sk_scope_init(struct sk_scope *scope)
+{
+    scope->parent = NULL;
+    sk_symbol_table_init(&scope->symbols);
+}
+
+void sk_scope_free(struct sk_scope *scope)
+{
+    sk_symbol_table_free(&scope->symbols);
+    scope->parent = NULL;
+}
+
 void sk_checker_init(struct sk_checker *checker)
 {
     checker->has_error = false;
     sk_type_arena_init(&checker->type_arena, 256);
-    sk_symbol_table_init(&checker->symbols);
+    sk_scope_init(&checker->global_scope);
+    checker->current_scope = &checker->global_scope;
 }
 
 void sk_checker_free(struct sk_checker *checker)
 {
-    sk_symbol_table_free(&checker->symbols);
+    sk_scope_free(&checker->global_scope);
+    checker->current_scope = NULL;
     sk_type_arena_free(&checker->type_arena);
     checker->has_error = false;
 }
@@ -111,9 +125,35 @@ static struct sk_type *resolve_type_name_expr(struct sk_checker *checker, const 
 static bool token_equals(const struct sk_token *token, const char *text);
 static struct sk_type *make_type(struct sk_checker *checker, enum sk_type_kind kind);
 static void checker_error(struct sk_checker *checker, const char *message);
+static struct sk_scope *checker_push_scope(struct sk_checker *checker);
+static void checker_pop_scope(struct sk_checker *checker);
+static struct sk_symbol *lookup_symbol(const struct sk_scope *scope, const struct sk_token *name);
+static void check_node(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_literal(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_identifier(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_unary(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_binary(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_call(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_args(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_block(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_let(
+    struct sk_checker *checker,
+    struct sk_token name,
+    const struct sk_ast_type *type_expr,
+    const struct sk_ast_node *expression);
+static void check_assign(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_if(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_while(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_return(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_print(struct sk_checker *checker, const struct sk_ast_node *node);
 
+static void collect_declarations(struct sk_checker *checker, const struct sk_ast_program *program);
 static void collect_declaration(struct sk_checker *checker, const struct sk_ast_node *node);
 static void collect_function(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_declarations(struct sk_checker *checker, const struct sk_ast_program *program);
+static void check_declaration(struct sk_checker *checker, const struct sk_ast_node *node);
+static void check_function_parameters(struct sk_checker *checker, const struct sk_ast_fn *function);
+static void check_function(struct sk_checker *checker, const struct sk_ast_node *node);
 
 bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root)
 {
@@ -125,6 +165,14 @@ bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root
     }
 
     const struct sk_ast_program *program = &root->as.program;
+    collect_declarations(checker, program);
+    check_declarations(checker, program);
+
+    return !checker->has_error;
+}
+
+static void collect_declarations(struct sk_checker *checker, const struct sk_ast_program *program)
+{
     for (size_t i = 0; i < program->declarations.count; i++) {
         const struct sk_ast_node *declaration = program->declarations.nodes[i];
 
@@ -135,8 +183,6 @@ bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root
 
         collect_declaration(checker, declaration);
     }
-
-    return !checker->has_error;
 }
 
 static struct sk_type *resolve_type_expr(struct sk_checker *checker, const struct sk_ast_type *type_expr)
@@ -223,8 +269,48 @@ static void collect_function(struct sk_checker *checker, const struct sk_ast_nod
         },
     };
 
-    if (!sk_symbol_table_add(&checker->symbols, symbol)) {
+    if (!sk_symbol_table_add(&checker->current_scope->symbols, symbol)) {
         checker_error(checker, "Function already declared.");
+    }
+}
+
+static void check_declarations(struct sk_checker *checker, const struct sk_ast_program *program)
+{
+    for (size_t i = 0; i < program->declarations.count; i++) {
+        const struct sk_ast_node *declaration = program->declarations.nodes[i];
+
+        if (declaration != NULL) {
+            check_declaration(checker, declaration);
+        }
+    }
+}
+
+static void check_declaration(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    switch (node->type) {
+        case SK_AST_FN:
+            check_function(checker, node);
+            break;
+        default:
+            break;
+    }
+}
+
+static void check_function(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    const struct sk_ast_fn *function = &node->as.fn;
+
+    checker_push_scope(checker);
+    check_function_parameters(checker, function);
+    check_node(checker, function->body);
+    checker_pop_scope(checker);
+}
+
+static void check_function_parameters(struct sk_checker *checker, const struct sk_ast_fn *function)
+{
+    for (size_t i = 0; i < function->parameters.count; i++) {
+        const struct sk_ast_parameter *parameter = &function->parameters.parameters[i];
+        check_let(checker, parameter->name, &parameter->type, NULL);
     }
 }
 
@@ -247,4 +333,186 @@ static void checker_error(struct sk_checker *checker, const char *message)
 {
     fprintf(stderr, "Semantic error: %s\n", message);
     checker->has_error = true;
+}
+
+static struct sk_scope *checker_push_scope(struct sk_checker *checker)
+{
+    struct sk_scope *scope = sk_alloc(struct sk_scope);
+    sk_scope_init(scope);
+    scope->parent = checker->current_scope;
+    checker->current_scope = scope;
+    return scope;
+}
+
+static void checker_pop_scope(struct sk_checker *checker)
+{
+    if (checker->current_scope == NULL || checker->current_scope == &checker->global_scope) {
+        return;
+    }
+
+    struct sk_scope *scope = checker->current_scope;
+    checker->current_scope = scope->parent;
+    sk_scope_free(scope);
+    sk_free(scope);
+}
+
+static struct sk_symbol *lookup_symbol(const struct sk_scope *scope, const struct sk_token *name)
+{
+    for (const struct sk_scope *current = scope; current != NULL; current = current->parent) {
+        void *value = NULL;
+        if (sk_hashmap_get(&current->symbols.symbols_map, name->start, name->length, &value)) {
+            return value;
+        }
+    }
+
+    return NULL;
+}
+
+static void check_node(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    if (node == NULL) {
+        return;
+    }
+
+    switch (node->type) {
+        case SK_AST_LITERAL:
+            check_literal(checker, node);
+            break;
+        case SK_AST_IDENTIFIER:
+            check_identifier(checker, node);
+            break;
+        case SK_AST_UNARY:
+            check_unary(checker, node);
+            break;
+        case SK_AST_BINARY:
+            check_binary(checker, node);
+            break;
+        case SK_AST_CALL:
+            check_call(checker, node);
+            break;
+        case SK_AST_ARGS:
+            check_args(checker, node);
+            break;
+        case SK_AST_BLOCK:
+            check_block(checker, node);
+            break;
+        case SK_AST_LET:
+            check_let(checker, node->as.let.name, &node->as.let.type, node->as.let.expression);
+            break;
+        case SK_AST_ASSIGN:
+            check_assign(checker, node);
+            break;
+        case SK_AST_IF:
+            check_if(checker, node);
+            break;
+        case SK_AST_WHILE:
+            check_while(checker, node);
+            break;
+        case SK_AST_RETURN:
+            check_return(checker, node);
+            break;
+        case SK_AST_PRINT:
+            check_print(checker, node);
+            break;
+        default:
+            break;
+    }
+}
+
+static void check_literal(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    (void)checker;
+    (void)node;
+}
+
+static void check_identifier(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    if (lookup_symbol(checker->current_scope, &node->as.identifier.token) == NULL) {
+        checker_error(checker, "Unknown identifier.");
+    }
+}
+
+static void check_unary(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.unary.expression);
+}
+
+static void check_binary(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.binary.left);
+    check_node(checker, node->as.binary.right);
+}
+
+static void check_call(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.call.callee);
+    check_node(checker, node->as.call.args);
+}
+
+static void check_args(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    for (size_t i = 0; i < node->as.args.args.count; i++) {
+        check_node(checker, node->as.args.args.nodes[i]);
+    }
+}
+
+static void check_block(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    for (size_t i = 0; i < node->as.block.contents.count; i++) {
+        check_node(checker, node->as.block.contents.nodes[i]);
+    }
+}
+
+static void check_let(
+    struct sk_checker *checker,
+    struct sk_token name,
+    const struct sk_ast_type *type_expr,
+    const struct sk_ast_node *expression)
+{
+    check_node(checker, expression);
+
+    struct sk_type *type = resolve_type_expr(checker, type_expr);
+    const struct sk_symbol symbol = {
+        .name = name,
+        .type = SK_SYMBOL_LOCAL,
+        .as.local = {
+            .type = type,
+        },
+    };
+
+    if (!sk_symbol_table_add(&checker->current_scope->symbols, symbol)) {
+        checker_error(checker, "Local already declared.");
+    }
+}
+
+static void check_assign(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    if (lookup_symbol(checker->current_scope, &node->as.assign.name) == NULL) {
+        checker_error(checker, "Unknown identifier.");
+    }
+
+    check_node(checker, node->as.assign.expression);
+}
+
+static void check_if(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.ifn.condition);
+    check_node(checker, node->as.ifn.then_branch);
+    check_node(checker, node->as.ifn.else_branch);
+}
+
+static void check_while(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.whilen.condition);
+    check_node(checker, node->as.whilen.body);
+}
+
+static void check_return(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.returnn.expression);
+}
+
+static void check_print(struct sk_checker *checker, const struct sk_ast_node *node)
+{
+    check_node(checker, node->as.print.args);
 }

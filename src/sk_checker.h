@@ -11,6 +11,7 @@
 
 enum sk_symbol_type {
     SK_SYMBOL_FN_OVERLOADS,
+    SK_SYMBOL_LOCAL,
 };
 
 struct sk_symbol_function {
@@ -22,11 +23,16 @@ struct sk_symbol_fn_overloads {
     struct sk_symbol_function overloads;
 };
 
+struct sk_symbol_local {
+    struct sk_type *type;
+};
+
 struct sk_symbol {
     struct sk_token name;
     enum sk_symbol_type type;
     union {
         struct sk_symbol_fn_overloads fn_overloads;
+        struct sk_symbol_local local;
     } as;
 };
 
@@ -59,10 +65,19 @@ void sk_symbol_table_init(struct sk_symbol_table *table);
 void sk_symbol_table_free(struct sk_symbol_table *table);
 bool sk_symbol_table_add(struct sk_symbol_table *table, struct sk_symbol symbol);
 
+struct sk_scope {
+    struct sk_scope *parent;
+    struct sk_symbol_table symbols;
+};
+
+void sk_scope_init(struct sk_scope *scope);
+void sk_scope_free(struct sk_scope *scope);
+
 struct sk_checker {
     bool has_error;
     struct sk_type_arena type_arena;
-    struct sk_symbol_table symbols;
+    struct sk_scope global_scope;
+    struct sk_scope *current_scope;
 };
 
 void sk_checker_init(struct sk_checker *checker);
