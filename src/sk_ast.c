@@ -163,10 +163,15 @@ static void print_block(const struct sk_ast_node *node, int depth)
 static void print_let(const struct sk_ast_node *node, int depth)
 {
     print_indent(depth);
-    printf("let %.*s: ", (int)node->as.let.name.length, node->as.let.name.start);
-    print_type(&node->as.let.type);
+    printf("let %.*s", (int)node->as.let.name.length, node->as.let.name.start);
+    if (node->as.let.has_type) {
+        printf(": ");
+        print_type(&node->as.let.type);
+    }
     printf("\n");
-    print_expression(node->as.let.expression, depth + 1);
+    if (node->as.let.has_initializer) {
+        print_expression(node->as.let.expression, depth + 1);
+    }
 }
 
 static void print_assign(const struct sk_ast_node *node, int depth)

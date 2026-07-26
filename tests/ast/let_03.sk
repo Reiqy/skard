@@ -1,0 +1,6 @@
+fn main() {
+    let inferred = 42
+    let declared: Number
+    let empty
+    let explicit: Number = 42
+}

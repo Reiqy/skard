@@ -112,7 +112,9 @@ struct sk_ast_block {
 
 struct sk_ast_let {
     struct sk_token name;
+    bool has_type;
     struct sk_ast_type type;
+    bool has_initializer;
     struct sk_ast_node *expression;
 };
 

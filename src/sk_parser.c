@@ -24,7 +24,9 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser);
 static struct sk_ast_node *ast_let_new(
     struct sk_parser *parser,
     struct sk_token name,
+    bool has_type,
     struct sk_ast_type type,
+    bool has_initializer,
     struct sk_ast_node *expression);
 static struct sk_ast_node *ast_assign_new(
     struct sk_parser *parser,
@@ -159,7 +161,9 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
 static struct sk_ast_node *ast_let_new(
     struct sk_parser *parser,
     struct sk_token name,
+    bool has_type,
     struct sk_ast_type type,
+    bool has_initializer,
     struct sk_ast_node *expression)
 {
     struct sk_ast_node *let = sk_ast_node_arena_alloc(&parser->arena);
@@ -167,7 +171,9 @@ static struct sk_ast_node *ast_let_new(
         .type = SK_AST_LET,
         .as.let = (struct sk_ast_let) {
             .name = name,
+            .has_type = has_type,
             .type = type,
+            .has_initializer = has_initializer,
             .expression = expression,
         },
     };
@@ -575,18 +581,24 @@ static struct sk_ast_node *parse_let_statement(struct sk_parser *parser)
     consume(parser, SK_TOKEN_IDENTIFIER, "Expected variable name.");
     struct sk_token name = parser->previous;
 
-    consume(parser, SK_TOKEN_COLON, "Expected ':' after variable name.");
-
-    struct sk_ast_type type = parse_type(parser, "Expected variable type.");
-
-    consume(parser, SK_TOKEN_ASSIGN, "Expected '=' after variable type.");
-
-    struct sk_ast_node *expression = parse_expression(parser);
-    if (expression == NULL) {
-        return NULL;
+    bool has_type = false;
+    struct sk_ast_type type = EMPTY_AST_TYPE;
+    if (match(parser, SK_TOKEN_COLON)) {
+        has_type = true;
+        type = parse_type(parser, "Expected variable type.");
     }
 
-    return ast_let_new(parser, name, type, expression);
+    bool has_initializer = false;
+    struct sk_ast_node *expression = NULL;
+    if (match(parser, SK_TOKEN_ASSIGN)) {
+        has_initializer = true;
+        expression = parse_expression(parser);
+        if (expression == NULL) {
+            return NULL;
+        }
+    }
+
+    return ast_let_new(parser, name, has_type, type, has_initializer, expression);
 }
 
 static struct sk_ast_node *parse_assign_statement(struct sk_parser *parser)
