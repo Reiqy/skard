@@ -6,6 +6,9 @@
 
 #include "sk_lexer.h"
 
+struct sk_symbol;
+struct sk_ast_node;
+
 struct sk_ast_node_array {
     struct sk_ast_node **nodes;
     size_t capacity;
@@ -82,6 +85,8 @@ struct sk_ast_literal {
 
 struct sk_ast_identifier {
     struct sk_token token;
+
+    struct sk_symbol *symbol;
 };
 
 struct sk_ast_unary {
@@ -142,6 +147,8 @@ struct sk_ast_fn {
     bool has_return_type;
     struct sk_ast_type return_type;
     struct sk_ast_node *body;
+
+    struct sk_symbol *symbol;
 };
 
 struct sk_ast_program {

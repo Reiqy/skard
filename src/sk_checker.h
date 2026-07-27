@@ -78,6 +78,6 @@ struct sk_checker {
 
 void sk_checker_init(struct sk_checker *checker);
 void sk_checker_free(struct sk_checker *checker);
-bool sk_checker_check(struct sk_checker *checker, const struct sk_ast_node *root);
+bool sk_checker_check(struct sk_checker *checker, struct sk_ast_node *root);
 
 #endif // SKARD_SK_CHECKER_H
