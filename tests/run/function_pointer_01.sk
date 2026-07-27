@@ -1,0 +1,5 @@
+fn main() {
+    let x = main
+    let y = x
+    print("%f", y)
+}

@@ -8,6 +8,7 @@
 #include "sk_hashmap.h"
 #include "sk_lexer.h"
 #include "sk_type.h"
+#include "sk_value.h"
 
 enum sk_symbol_type {
     SK_SYMBOL_FN_OVERLOADS,
@@ -16,6 +17,7 @@ enum sk_symbol_type {
 
 struct sk_symbol_function {
     struct sk_type *type;
+    sk_fnptr fnptr;
 };
 
 struct sk_symbol_fn_overloads {
@@ -74,6 +76,7 @@ struct sk_checker {
     struct sk_scope global_scope;
     struct sk_scope *current_scope;
     const struct sk_type *current_function_type;
+    sk_fnptr next_fnptr;
 };
 
 void sk_checker_init(struct sk_checker *checker);

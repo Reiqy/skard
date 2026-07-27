@@ -120,6 +120,7 @@ void sk_checker_init(struct sk_checker *checker)
     sk_scope_init(&checker->global_scope);
     checker->current_scope = &checker->global_scope;
     checker->current_function_type = NULL;
+    checker->next_fnptr = 0;
 }
 
 void sk_checker_free(struct sk_checker *checker)
@@ -285,6 +286,7 @@ static void collect_function(struct sk_checker *checker, struct sk_ast_node *nod
         .as.fn_overloads = {
             .overloads = {
                 .type = function_type,
+                .fnptr = 0,
             },
         },
     };
@@ -293,6 +295,7 @@ static void collect_function(struct sk_checker *checker, struct sk_ast_node *nod
     if (stored == NULL) {
         checker_error(checker, "Function already declared.");
     } else {
+        stored->as.fn_overloads.overloads.fnptr = checker->next_fnptr++;
         function->symbol = stored;
     }
 }

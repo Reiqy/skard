@@ -83,6 +83,7 @@ void sk_vm_free(struct sk_vm *vm)
 
 static enum sk_vm_result vm_loop(struct sk_vm *vm);
 static void reserve_stack_slots(struct sk_vm *vm, size_t count);
+static void vm_print(struct sk_vm_stack *stack);
 
 enum sk_vm_result sk_vm_run(struct sk_vm *vm, struct sk_chunk *chunk)
 {
@@ -111,35 +112,7 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
             case SK_OP_RETURN:
                 return SK_VM_OK;
             case SK_OP_PRINT: {
-                // TODO: Eventually remove this temporary code.
-                const struct sk_object_string *template = sk_as_string(pop());
-                for (size_t i = 0; i < template->length; i++) {
-                    char c = template->chars[i];
-                    if (c == '%') {
-                        // The following line is safe because the char on length + 1 is '\0'.
-                        char next_c = template->chars[++i];
-                        switch (next_c) {
-                            case 'n':
-                                sk_number_print(pop());
-                                break;
-                            case 'b':
-                                sk_boolean_print(pop());
-                                break;
-                            case 's':
-                                sk_string_print(pop());
-                                break;
-                            default:
-                                printf("INVALID");
-                                break;
-                        }
-
-                        continue;
-                    }
-
-                    printf("%c", c);
-                }
-
-                printf("\n");
+                vm_print(&vm->stack);
                 break;
             }
 
@@ -269,6 +242,41 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
 #undef read_short
 #undef read_const
 #undef read_byte
+}
+
+static void vm_print(struct sk_vm_stack *stack)
+{
+    const struct sk_object_string *template = sk_as_string(sk_vm_stack_pop(stack));
+    for (size_t i = 0; i < template->length; i++) {
+        char c = template->chars[i];
+        if (c == '%') {
+            // The following line is safe because the char on length + 1 is '\0'.
+            char next_c = template->chars[++i];
+            switch (next_c) {
+                case 'n':
+                    sk_number_print(sk_vm_stack_pop(stack));
+                    break;
+                case 'b':
+                    sk_boolean_print(sk_vm_stack_pop(stack));
+                    break;
+                case 's':
+                    sk_string_print(sk_vm_stack_pop(stack));
+                    break;
+                case 'f':
+                    sk_fnptr_print(sk_vm_stack_pop(stack));
+                    break;
+                default:
+                    printf("INVALID");
+                    break;
+            }
+
+            continue;
+        }
+
+        printf("%c", c);
+    }
+
+    printf("\n");
 }
 
 static void reserve_stack_slots(struct sk_vm *vm, size_t count)

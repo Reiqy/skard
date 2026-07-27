@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "sk_checker.h"
 #include "sk_parser.h"
 
 static void compiler_error(struct sk_compiler *compiler, const char *msg);
@@ -458,7 +459,12 @@ static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node 
 
     size_t slot;
     if (!resolve_local(compiler, identifier->token, &slot)) {
-        compiler_error(compiler, "Unknown local variable.");
+        if (identifier->symbol != NULL && identifier->symbol->type == SK_SYMBOL_FN_OVERLOADS) {
+            emit_const(compiler, sk_fnptr_value(identifier->symbol->as.fn_overloads.overloads.fnptr));
+            return;
+        }
+
+        compiler_error(compiler, "Unknown value.");
         return;
     }
 
