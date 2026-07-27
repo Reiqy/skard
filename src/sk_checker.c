@@ -6,8 +6,12 @@
 #include "sk_memory.h"
 
 static struct sk_symbol_arena_block *symbol_arena_add_block(struct sk_symbol_arena *arena, size_t capacity);
+static void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity);
+static void sk_symbol_arena_free(struct sk_symbol_arena *arena);
+static struct sk_symbol *sk_symbol_arena_alloc(struct sk_symbol_arena *arena);
+static bool sk_symbol_table_add(struct sk_symbol_arena *arena, struct sk_symbol_table *table, struct sk_symbol symbol);
 
-void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity)
+static void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity)
 {
     arena->blocks = NULL;
     arena->capacity = 0;
@@ -17,7 +21,7 @@ void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity)
     arena->block_capacity = arena->initial_block_capacity;
 }
 
-void sk_symbol_arena_free(struct sk_symbol_arena *arena)
+static void sk_symbol_arena_free(struct sk_symbol_arena *arena)
 {
     for (size_t i = 0; i < arena->count; i++) {
         sk_free(arena->blocks[i].symbols);
@@ -27,7 +31,7 @@ void sk_symbol_arena_free(struct sk_symbol_arena *arena)
     sk_symbol_arena_init(arena, arena->initial_block_capacity);
 }
 
-struct sk_symbol *sk_symbol_arena_alloc(struct sk_symbol_arena *arena)
+static struct sk_symbol *sk_symbol_arena_alloc(struct sk_symbol_arena *arena)
 {
     if (arena->current_block_index >= arena->count) {
         symbol_arena_add_block(arena, arena->block_capacity);
@@ -64,26 +68,24 @@ static struct sk_symbol_arena_block *symbol_arena_add_block(struct sk_symbol_are
 
 void sk_symbol_table_init(struct sk_symbol_table *table)
 {
-    sk_symbol_arena_init(&table->arena, 256);
     table->count = 0;
     sk_hashmap_init(&table->symbols_map);
 }
 
 void sk_symbol_table_free(struct sk_symbol_table *table)
 {
-    sk_symbol_arena_free(&table->arena);
     sk_hashmap_free(&table->symbols_map);
     sk_symbol_table_init(table);
 }
 
-bool sk_symbol_table_add(struct sk_symbol_table *table, struct sk_symbol symbol)
+static bool sk_symbol_table_add(struct sk_symbol_arena *arena, struct sk_symbol_table *table, struct sk_symbol symbol)
 {
     void *existing = NULL;
     if (sk_hashmap_get(&table->symbols_map, symbol.name.start, symbol.name.length, &existing)) {
         return false;
     }
 
-    struct sk_symbol *stored = sk_symbol_arena_alloc(&table->arena);
+    struct sk_symbol *stored = sk_symbol_arena_alloc(arena);
     *stored = symbol;
     table->count++;
 
@@ -108,6 +110,7 @@ void sk_checker_init(struct sk_checker *checker)
 {
     checker->has_error = false;
     sk_type_arena_init(&checker->type_arena, 256);
+    sk_symbol_arena_init(&checker->symbol_arena, 256);
     sk_scope_init(&checker->global_scope);
     checker->current_scope = &checker->global_scope;
     checker->current_function_type = NULL;
@@ -118,6 +121,7 @@ void sk_checker_free(struct sk_checker *checker)
     sk_scope_free(&checker->global_scope);
     checker->current_scope = NULL;
     checker->current_function_type = NULL;
+    sk_symbol_arena_free(&checker->symbol_arena);
     sk_type_arena_free(&checker->type_arena);
     checker->has_error = false;
 }
@@ -130,6 +134,8 @@ static void checker_error(struct sk_checker *checker, const char *message);
 static void checker_type_error(struct sk_checker *checker, const char *message);
 static struct sk_scope *checker_push_scope(struct sk_checker *checker);
 static void checker_pop_scope(struct sk_checker *checker);
+static bool checker_add_symbol(struct sk_checker *checker, struct sk_symbol symbol);
+
 static struct sk_symbol *lookup_symbol(const struct sk_scope *scope, const struct sk_token *name);
 static void check_node(struct sk_checker *checker, const struct sk_ast_node *node);
 static struct sk_type *check_expression(
@@ -277,7 +283,7 @@ static void collect_function(struct sk_checker *checker, const struct sk_ast_nod
         },
     };
 
-    if (!sk_symbol_table_add(&checker->current_scope->symbols, symbol)) {
+    if (!checker_add_symbol(checker, symbol)) {
         checker_error(checker, "Function already declared.");
     }
 }
@@ -374,6 +380,11 @@ static void checker_pop_scope(struct sk_checker *checker)
     checker->current_scope = scope->parent;
     sk_scope_free(scope);
     sk_free(scope);
+}
+
+static bool checker_add_symbol(struct sk_checker *checker, struct sk_symbol symbol)
+{
+    return sk_symbol_table_add(&checker->symbol_arena, &checker->current_scope->symbols, symbol);
 }
 
 static struct sk_symbol *lookup_symbol(const struct sk_scope *scope, const struct sk_token *name)
@@ -649,7 +660,7 @@ static void check_let(
         },
     };
 
-    if (!sk_symbol_table_add(&checker->current_scope->symbols, symbol)) {
+    if (!checker_add_symbol(checker, symbol)) {
         checker_error(checker, "Local already declared.");
     }
 }

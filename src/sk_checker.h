@@ -51,19 +51,13 @@ struct sk_symbol_arena {
     size_t block_capacity;
 };
 
-void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity);
-void sk_symbol_arena_free(struct sk_symbol_arena *arena);
-struct sk_symbol *sk_symbol_arena_alloc(struct sk_symbol_arena *arena);
-
 struct sk_symbol_table {
-    struct sk_symbol_arena arena;
     size_t count;
     struct sk_hashmap symbols_map;
 };
 
 void sk_symbol_table_init(struct sk_symbol_table *table);
 void sk_symbol_table_free(struct sk_symbol_table *table);
-bool sk_symbol_table_add(struct sk_symbol_table *table, struct sk_symbol symbol);
 
 struct sk_scope {
     struct sk_scope *parent;
@@ -76,6 +70,7 @@ void sk_scope_free(struct sk_scope *scope);
 struct sk_checker {
     bool has_error;
     struct sk_type_arena type_arena;
+    struct sk_symbol_arena symbol_arena;
     struct sk_scope global_scope;
     struct sk_scope *current_scope;
     const struct sk_type *current_function_type;
