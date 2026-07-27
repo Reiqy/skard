@@ -16,6 +16,7 @@ struct sk_compiler_local {
 
 struct sk_compiler {
     struct sk_chunk *current_chunk;
+    struct sk_program *program;
     bool has_error;
 
     struct sk_compiler_local locals[SK_COMPILER_MAX_LOCALS];
@@ -23,7 +24,7 @@ struct sk_compiler {
     size_t locals_count;
 };
 
-bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_chunk *chunk);
+bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_program *program);
 
 
 #endif // SK_COMPILER_H

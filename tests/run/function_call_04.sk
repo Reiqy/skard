@@ -1,0 +1,11 @@
+fn noop1() {
+    return
+}
+
+fn noop2() {}
+
+fn main() {
+    noop1()
+    noop2()
+    print("done")
+}

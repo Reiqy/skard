@@ -110,6 +110,13 @@ static void print_parenthesized_expression(const struct sk_ast_node *node)
             print_parenthesized_expression(node->as.binary.right);
             printf(")");
             break;
+        case SK_AST_ASSIGN:
+            printf("(");
+            printf("%.*s", (int)node->as.assign.name.length, node->as.assign.name.start);
+            printf(" = ");
+            print_parenthesized_expression(node->as.assign.expression);
+            printf(")");
+            break;
         case SK_AST_CALL:
             print_parenthesized_expression(node->as.call.callee);
             printf("(");
@@ -284,6 +291,9 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
             break;
         case SK_AST_PRINT:
             print_print(node, depth);
+            break;
+        case SK_AST_EXPR_STMT:
+            print_expression(node->as.expr_stmt.expression, depth);
             break;
         case SK_AST_FN:
             print_fn(node, depth);

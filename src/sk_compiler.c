@@ -1,6 +1,7 @@
 #include "sk_compiler.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "sk_checker.h"
 #include "sk_parser.h"
@@ -15,7 +16,6 @@ static void emit(struct sk_compiler *compiler, uint8_t byte);
 static void emit2(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2);
 static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, uint8_t byte3);
 
-static void emit_halt(struct sk_compiler *compiler);
 static void emit_const(struct sk_compiler *compiler, struct sk_value constant);
 static size_t emit_jmp(struct sk_compiler *compiler, uint8_t instruction);
 static void emit_jmp_back(struct sk_compiler *compiler, size_t target_offset);
@@ -30,11 +30,11 @@ static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *n
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_block(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
-static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_while_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_expr_stmt(struct sk_compiler *compiler, struct sk_ast_node *node);
 
 static void compile_expression_or_nothing(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node *node);
@@ -43,28 +43,20 @@ static void compile_and(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_or(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_unary(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_assignment(struct sk_compiler *compiler, struct sk_ast_node *node);
+static void compile_call(struct sk_compiler *compiler, struct sk_ast_node *node);
 
 static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *node);
 static void compile_number(struct sk_compiler *compiler, struct sk_ast_literal *literal);
 static void compile_string(struct sk_compiler *compiler, struct sk_ast_literal *literal);
 
-bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_chunk *chunk)
+bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_program *program)
 {
-    compiler->current_chunk = chunk;
+    compiler->program = program;
     compiler->has_error = false;
-
-    sk_hashmap_init(&compiler->locals_map);
-    compiler->locals_count = 0;
-
+    sk_program_init(program);
     compile_program(compiler, node);
-    chunk->locals_count = compiler->locals_count;
-    emit_halt(compiler);
-
-    bool success = !compiler->has_error;
-
-    sk_hashmap_free(&compiler->locals_map);
-
-    return success;
+    return !compiler->has_error;
 }
 
 static void compiler_error(struct sk_compiler *compiler, const char *msg)
@@ -90,10 +82,13 @@ static bool declare_local(struct sk_compiler *compiler, struct sk_token name, si
 
     struct sk_compiler_local *local = &compiler->locals[compiler->locals_count];
 
-    *slot = compiler->locals_count;
+    size_t local_slot = compiler->locals_count;
+    if (slot != NULL) {
+        *slot = local_slot;
+    }
     *local = (struct sk_compiler_local) {
         .name = name,
-        .slot = *slot,
+        .slot = local_slot,
     };
 
     compiler->locals_count++;
@@ -132,11 +127,6 @@ static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, ui
     emit(compiler, byte1);
     emit(compiler, byte2);
     emit(compiler, byte3);
-}
-
-static void emit_halt(struct sk_compiler *compiler)
-{
-    emit(compiler, SK_OP_HALT);
 }
 
 static void emit_const(struct sk_compiler *compiler, struct sk_value constant)
@@ -181,8 +171,6 @@ static void compile_program(struct sk_compiler *compiler, struct sk_ast_node *no
     struct sk_ast_program *program = &node->as.program;
     for (size_t i = 0; i < program->declarations.count; i++) {
         compile_declaration(compiler, program->declarations.nodes[i]);
-        // TODO: Only a single declaration is allowed for now.
-        break;
     }
 }
 
@@ -196,7 +184,28 @@ static void compile_declaration(struct sk_compiler *compiler, struct sk_ast_node
 static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *node)
 {
     struct sk_ast_fn *fn = &node->as.fn;
+    sk_fnptr fnptr = fn->symbol->as.fn_overloads.overloads.fnptr;
+    struct sk_compiled_function *function = sk_program_add_function(compiler->program, fnptr);
+
+    compiler->current_chunk = &function->chunk;
+    compiler->locals_count = 0;
+    sk_hashmap_init(&compiler->locals_map);
+
+    for (size_t i = 0; i < fn->parameters.count; i++) {
+        declare_local(compiler, fn->parameters.parameters[i].name, NULL);
+    }
+
     compile_block(compiler, fn->body);
+    emit(compiler, SK_OP_NOTHING);
+    emit(compiler, SK_OP_RETURN);
+
+    function->chunk.locals_count = compiler->locals_count;
+    function->parameter_count = fn->parameters.count;
+    sk_hashmap_free(&compiler->locals_map);
+
+    if (fn->name.length == 4 && memcmp(fn->name.start, "main", 4) == 0) {
+        compiler->program->entry = fnptr;
+    }
 }
 
 static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
@@ -207,9 +216,6 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
             break;
         case SK_AST_LET:
             compile_let_statement(compiler, node);
-            break;
-        case SK_AST_ASSIGN:
-            compile_assign_statement(compiler, node);
             break;
         case SK_AST_IF:
             compile_if_statement(compiler, node);
@@ -222,6 +228,9 @@ static void compile_statement(struct sk_compiler *compiler, struct sk_ast_node *
             break;
         case SK_AST_RETURN:
             compile_return_statement(compiler, node);
+            break;
+        case SK_AST_EXPR_STMT:
+            compile_expr_stmt(compiler, node);
             break;
         default:
             compiler_error(compiler, "Unsupported statement.");
@@ -254,7 +263,7 @@ static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_no
     emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
 }
 
-static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
+static void compile_assignment(struct sk_compiler *compiler, struct sk_ast_node *node)
 {
     struct sk_ast_assign *assign = &node->as.assign;
 
@@ -270,6 +279,7 @@ static void compile_assign_statement(struct sk_compiler *compiler, struct sk_ast
     }
 
     emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
+    emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)slot);
 }
 
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
@@ -329,6 +339,12 @@ static void compile_return_statement(struct sk_compiler *compiler, struct sk_ast
     emit(compiler, SK_OP_RETURN);
 }
 
+static void compile_expr_stmt(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    compile_expression(compiler, node->as.expr_stmt.expression);
+    emit(compiler, SK_OP_POP);
+}
+
 static void compile_expression_or_nothing(struct sk_compiler *compiler, struct sk_ast_node *node)
 {
     if (node == NULL) {
@@ -350,6 +366,12 @@ static void compile_expression(struct sk_compiler *compiler, struct sk_ast_node 
             break;
         case SK_AST_IDENTIFIER:
             compile_identifier(compiler, node);
+            break;
+        case SK_AST_CALL:
+            compile_call(compiler, node);
+            break;
+        case SK_AST_ASSIGN:
+            compile_assignment(compiler, node);
             break;
         case SK_AST_LITERAL:
             compile_literal(compiler, node);
@@ -469,6 +491,16 @@ static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node 
     }
 
     emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)slot);
+}
+
+static void compile_call(struct sk_compiler *compiler, struct sk_ast_node *node)
+{
+    compile_expression(compiler, node->as.call.callee);
+    for (size_t i = 0; i < node->as.call.args.count; i++) {
+        compile_expression(compiler, node->as.call.args.nodes[i]);
+    }
+
+    emit2(compiler, SK_OP_CALL, (uint8_t)node->as.call.args.count);
 }
 
 static void compile_literal(struct sk_compiler *compiler, struct sk_ast_node *node)

@@ -1,0 +1,5 @@
+fn main() {
+    let x: Number = 0
+    print("%n", x = 40 + 2)
+    print("%n", x)
+}

@@ -3,5 +3,4 @@ program:
     {}
       let a: Number
         0
-      a =
-        1
+      (a = 1)

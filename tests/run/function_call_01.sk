@@ -1,0 +1,7 @@
+fn add(a: Number, b: Number) -> Number {
+    return a + b
+}
+
+fn main() {
+    print("%n", add(20, 22))
+}

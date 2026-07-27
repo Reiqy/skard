@@ -56,15 +56,16 @@ enum sk_ast_node_type {
     SK_AST_UNARY,
     SK_AST_BINARY,
     SK_AST_CALL,
+    SK_AST_ASSIGN,
 
     // Statements
     SK_AST_BLOCK,
     SK_AST_LET,
-    SK_AST_ASSIGN,
     SK_AST_IF,
     SK_AST_WHILE,
     SK_AST_RETURN,
     SK_AST_PRINT,
+    SK_AST_EXPR_STMT,
 
     // Declarations
     SK_AST_FN,
@@ -141,6 +142,10 @@ struct sk_ast_print {
     struct sk_ast_node_array args;
 };
 
+struct sk_ast_expr_stmt {
+    struct sk_ast_node *expression;
+};
+
 struct sk_ast_fn {
     struct sk_token name;
     struct sk_ast_parameter_array parameters;
@@ -174,6 +179,7 @@ struct sk_ast_node {
         struct sk_ast_while whilen;
         struct sk_ast_return returnn;
         struct sk_ast_print print;
+        struct sk_ast_expr_stmt expr_stmt;
         struct sk_ast_fn fn;
         struct sk_ast_program program;
 

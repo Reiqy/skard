@@ -162,11 +162,12 @@ static void check_let(
     const struct sk_ast_type *type_expr,
     bool has_initializer,
     struct sk_ast_node *expression);
-static void check_assign(struct sk_checker *checker, struct sk_ast_node *node);
+static struct sk_type *check_assignment(struct sk_checker *checker, struct sk_ast_node *node);
 static void check_if(struct sk_checker *checker, struct sk_ast_node *node);
 static void check_while(struct sk_checker *checker, struct sk_ast_node *node);
 static void check_return(struct sk_checker *checker, struct sk_ast_node *node);
 static void check_print(struct sk_checker *checker, struct sk_ast_node *node);
+static void check_expr_stmt(struct sk_checker *checker, struct sk_ast_node *node);
 
 static void collect_declarations(struct sk_checker *checker, struct sk_ast_program *program);
 static void collect_declaration(struct sk_checker *checker, struct sk_ast_node *node);
@@ -423,6 +424,7 @@ static void check_node(struct sk_checker *checker, struct sk_ast_node *node)
         case SK_AST_UNARY:
         case SK_AST_BINARY:
         case SK_AST_CALL:
+        case SK_AST_ASSIGN:
             check_expression(checker, node, NULL);
             break;
         case SK_AST_BLOCK:
@@ -437,9 +439,6 @@ static void check_node(struct sk_checker *checker, struct sk_ast_node *node)
                 node->as.let.has_initializer,
                 node->as.let.expression);
             break;
-        case SK_AST_ASSIGN:
-            check_assign(checker, node);
-            break;
         case SK_AST_IF:
             check_if(checker, node);
             break;
@@ -451,6 +450,9 @@ static void check_node(struct sk_checker *checker, struct sk_ast_node *node)
             break;
         case SK_AST_PRINT:
             check_print(checker, node);
+            break;
+        case SK_AST_EXPR_STMT:
+            check_expr_stmt(checker, node);
             break;
         default:
             break;
@@ -484,6 +486,9 @@ static struct sk_type *check_expression(
         case SK_AST_CALL:
             actual_type = check_call(checker, node);
             break;
+        case SK_AST_ASSIGN:
+            actual_type = check_assignment(checker, node);
+            break;
         default:
             checker_error(checker, "Expected expression.");
             return make_type(checker, SK_TYPE_INVALID);
@@ -496,6 +501,11 @@ static struct sk_type *check_expression(
     }
 
     return actual_type;
+}
+
+static void check_expr_stmt(struct sk_checker *checker, struct sk_ast_node *node)
+{
+    check_expression(checker, node->as.expr_stmt.expression, NULL);
 }
 
 static struct sk_type *check_literal(struct sk_checker *checker, struct sk_ast_node *node)
@@ -679,19 +689,19 @@ static void check_let(
     }
 }
 
-static void check_assign(struct sk_checker *checker, struct sk_ast_node *node)
+static struct sk_type *check_assignment(struct sk_checker *checker, struct sk_ast_node *node)
 {
     struct sk_symbol *symbol = lookup_symbol(checker->current_scope, &node->as.assign.name);
     if (symbol == NULL) {
         checker_error(checker, "Unknown identifier.");
         check_expression(checker, node->as.assign.expression, NULL);
-        return;
+        return make_type(checker, SK_TYPE_INVALID);
     }
 
     if (symbol->type != SK_SYMBOL_LOCAL) {
         checker_error(checker, "Expected a local value.");
         check_expression(checker, node->as.assign.expression, NULL);
-        return;
+        return make_type(checker, SK_TYPE_INVALID);
     }
 
     struct sk_type *inferred_type = check_expression(
@@ -701,6 +711,8 @@ static void check_assign(struct sk_checker *checker, struct sk_ast_node *node)
     if (symbol->as.local.type->kind == SK_TYPE_UNKNOWN && inferred_type->kind != SK_TYPE_INVALID) {
         symbol->as.local.type = inferred_type;
     }
+
+    return symbol->as.local.type;
 }
 
 static void check_if(struct sk_checker *checker, struct sk_ast_node *node)

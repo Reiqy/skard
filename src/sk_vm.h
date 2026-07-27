@@ -18,6 +18,8 @@ enum sk_opcode {
     SK_OP_LOAD_LOCAL,
     SK_OP_STORE_LOCAL,
 
+    SK_OP_CALL,
+
     SK_OP_NNEG,
     SK_OP_NADD,
     SK_OP_NSUB,
@@ -46,12 +48,33 @@ struct sk_chunk {
     size_t count;
 };
 
+struct sk_compiled_function {
+    struct sk_chunk chunk;
+    size_t parameter_count;
+};
+
+struct sk_function_array {
+    struct sk_compiled_function *functions;
+    size_t capacity;
+    size_t count;
+};
+
+struct sk_program {
+    struct sk_function_array functions;
+    sk_fnptr entry;
+};
+
 void sk_chunk_init(struct sk_chunk *chunk);
 void sk_chunk_free(struct sk_chunk *chunk);
 void sk_chunk_add(struct sk_chunk *chunk, uint8_t byte);
 void sk_chunk_add_const(struct sk_chunk *chunk, struct sk_value constant);
 
+void sk_program_init(struct sk_program *program);
+void sk_program_free(struct sk_program *program);
+struct sk_compiled_function *sk_program_add_function(struct sk_program *program, sk_fnptr fnptr);
+
 #define SK_VM_STACK_MAX_SIZE 256
+#define SK_VM_CALL_FRAME_MAX 256
 
 struct sk_vm_stack {
     struct sk_value stack[SK_VM_STACK_MAX_SIZE];
@@ -66,8 +89,13 @@ struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, int depth);
 
 struct sk_vm {
     struct sk_vm_stack stack;
-    struct sk_chunk *chunk;
-    uint8_t *ip;
+    struct sk_program *program;
+    struct {
+        const struct sk_compiled_function *function;
+        uint8_t *ip;
+        size_t base;
+    } frames[SK_VM_CALL_FRAME_MAX];
+    size_t frame_count;
 };
 
 void sk_vm_init(struct sk_vm *vm);
@@ -78,6 +106,6 @@ enum sk_vm_result {
     SK_VM_ERR,
 };
 
-enum sk_vm_result sk_vm_run(struct sk_vm *vm, struct sk_chunk *chunk);
+enum sk_vm_result sk_vm_run(struct sk_vm *vm, struct sk_program *program);
 
 #endif // SKARD_SK_VM_H
