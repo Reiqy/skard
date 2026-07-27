@@ -8,6 +8,7 @@
 
 typedef double sk_number;
 typedef bool sk_bool;
+typedef size_t sk_fnptr;
 typedef struct sk_object sk_object;
 
 sk_number sk_number_from_string(const char *str, size_t length);
@@ -16,18 +17,24 @@ struct sk_value {
     union {
         sk_number number;
         sk_bool boolean;
+        sk_fnptr fnptr;
+
         sk_object *object;
     } as;
 };
 
 #define sk_as_number(value) (value.as.number)
 #define sk_as_boolean(value) (value.as.boolean)
+#define sk_as_fnptr(value) (value.as.fnptr)
+
 #define sk_as_string(value) ((struct sk_object_string *)value.as.object)
 #define sk_as_cstring(value) (sk_as_string(value))->chars
 
 #define sk_nothing_value() ((struct sk_value) {0})
 #define sk_number_value(value) ((struct sk_value) {.as.number = (value)})
 #define sk_boolean_value(value) ((struct sk_value) {.as.boolean = (value)})
+#define sk_fnptr_value(value) ((struct sk_value) {.as.fnptr = (value)})
+
 #define sk_object_value(value) ((struct sk_value) {.as.object = (sk_object *)(value)})
 
 #define sk_boolean_true sk_boolean_value(true)
@@ -35,6 +42,7 @@ struct sk_value {
 
 void sk_number_print(struct sk_value value);
 void sk_boolean_print(struct sk_value value);
+void sk_fnptr_print(struct sk_value value);
 void sk_string_print(struct sk_value value);
 
 struct sk_value_array {

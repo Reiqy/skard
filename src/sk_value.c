@@ -49,6 +49,11 @@ void sk_boolean_print(struct sk_value value)
     printf("false");
 }
 
+void sk_fnptr_print(struct sk_value value)
+{
+    printf("fn<@%zu>", sk_as_fnptr(value));
+}
+
 void sk_string_print(struct sk_value value)
 {
     printf("%s", sk_as_cstring(value));
