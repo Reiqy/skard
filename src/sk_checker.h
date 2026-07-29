@@ -10,6 +10,8 @@
 #include "sk_type.h"
 #include "sk_value.h"
 
+#define SK_MAX_LOCAL_SLOTS 256
+
 enum sk_symbol_type {
     SK_SYMBOL_FN_OVERLOADS,
     SK_SYMBOL_LOCAL,
@@ -27,6 +29,7 @@ struct sk_symbol_fn_overloads {
 
 struct sk_symbol_local {
     struct sk_type *type;
+    size_t slot;
 };
 
 struct sk_symbol {
@@ -76,6 +79,7 @@ struct sk_checker {
     struct sk_scope global_scope;
     struct sk_scope *current_scope;
     const struct sk_type *current_function_type;
+    size_t next_local_slot;
     sk_fnptr next_fnptr;
 };
 

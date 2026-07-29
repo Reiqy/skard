@@ -8,10 +8,6 @@
 
 static void compiler_error(struct sk_compiler *compiler, const char *msg);
 
-static bool declare_local(struct sk_compiler *compiler, struct sk_token name, size_t *slot);
-
-static bool resolve_local(const struct sk_compiler *compiler, struct sk_token name, size_t *slot);
-
 static void emit(struct sk_compiler *compiler, uint8_t byte);
 static void emit2(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2);
 static void emit3(struct sk_compiler *compiler, uint8_t byte1, uint8_t byte2, uint8_t byte3);
@@ -63,52 +59,6 @@ static void compiler_error(struct sk_compiler *compiler, const char *msg)
 {
     fprintf(stderr, "%s\n", msg);
     compiler->has_error = true;
-}
-
-static bool declare_local(struct sk_compiler *compiler, struct sk_token name, size_t *slot)
-{
-    void *existing = NULL;
-
-    if (sk_hashmap_get(&compiler->locals_map, name.start, name.length, &existing)) {
-        // TODO: Shadowing.
-        compiler_error(compiler, "Local variable already declared.");
-        return false;
-    }
-
-    if (compiler->locals_count >= SK_COMPILER_MAX_LOCALS) {
-        compiler_error(compiler, "Too many local variables.");
-        return false;
-    }
-
-    struct sk_compiler_local *local = &compiler->locals[compiler->locals_count];
-
-    size_t local_slot = compiler->locals_count;
-    if (slot != NULL) {
-        *slot = local_slot;
-    }
-    *local = (struct sk_compiler_local) {
-        .name = name,
-        .slot = local_slot,
-    };
-
-    compiler->locals_count++;
-
-    sk_hashmap_set(&compiler->locals_map, name.start, name.length, local);
-
-    return true;
-}
-
-static bool resolve_local(const struct sk_compiler *compiler, struct sk_token name, size_t *slot)
-{
-    void *value = NULL;
-
-    if (!sk_hashmap_get(&compiler->locals_map, name.start, name.length, &value)) {
-        return false;
-    }
-
-    const struct sk_compiler_local *local = value;
-    *slot = local->slot;
-    return true;
 }
 
 static void emit(struct sk_compiler *compiler, uint8_t byte)
@@ -188,20 +138,12 @@ static void compile_function(struct sk_compiler *compiler, struct sk_ast_node *n
     struct sk_compiled_function *function = sk_program_add_function(compiler->program, fnptr);
 
     compiler->current_chunk = &function->chunk;
-    compiler->locals_count = 0;
-    sk_hashmap_init(&compiler->locals_map);
-
-    for (size_t i = 0; i < fn->parameters.count; i++) {
-        declare_local(compiler, fn->parameters.parameters[i].name, NULL);
-    }
-
     compile_block(compiler, fn->body);
     emit(compiler, SK_OP_NOTHING);
     emit(compiler, SK_OP_RETURN);
 
-    function->chunk.locals_count = compiler->locals_count;
+    function->chunk.locals_count = fn->locals_count;
     function->parameter_count = fn->parameters.count;
-    sk_hashmap_free(&compiler->locals_map);
 
     if (fn->name.length == 4 && memcmp(fn->name.start, "main", 4) == 0) {
         compiler->program->entry = fnptr;
@@ -255,12 +197,12 @@ static void compile_let_statement(struct sk_compiler *compiler, struct sk_ast_no
         return;
     }
 
-    size_t slot;
-    if (!declare_local(compiler, let->name, &slot)) {
+    if (let->symbol == NULL) {
+        compiler_error(compiler, "Missing local symbol.");
         return;
     }
 
-    emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
+    emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)let->symbol->as.local.slot);
 }
 
 static void compile_assignment(struct sk_compiler *compiler, struct sk_ast_node *node)
@@ -272,14 +214,14 @@ static void compile_assignment(struct sk_compiler *compiler, struct sk_ast_node 
         return;
     }
 
-    size_t slot;
-    if (!resolve_local(compiler, assign->name, &slot)) {
-        compiler_error(compiler, "Unknown local variable.");
+    if (assign->symbol == NULL) {
+        compiler_error(compiler, "Missing local symbol.");
         return;
     }
 
-    emit2(compiler, SK_OP_STORE_LOCAL, (uint8_t)slot);
-    emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)slot);
+    uint8_t slot = (uint8_t)assign->symbol->as.local.slot;
+    emit2(compiler, SK_OP_STORE_LOCAL, slot);
+    emit2(compiler, SK_OP_LOAD_LOCAL, slot);
 }
 
 static void compile_if_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
@@ -479,18 +421,17 @@ static void compile_identifier(struct sk_compiler *compiler, struct sk_ast_node 
 {
     struct sk_ast_identifier *identifier = &node->as.identifier;
 
-    size_t slot;
-    if (!resolve_local(compiler, identifier->token, &slot)) {
-        if (identifier->symbol != NULL && identifier->symbol->type == SK_SYMBOL_FN_OVERLOADS) {
-            emit_const(compiler, sk_fnptr_value(identifier->symbol->as.fn_overloads.overloads.fnptr));
-            return;
-        }
-
-        compiler_error(compiler, "Unknown value.");
+    if (identifier->symbol == NULL) {
+        compiler_error(compiler, "Missing identifier symbol.");
         return;
     }
 
-    emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)slot);
+    if (identifier->symbol->type == SK_SYMBOL_FN_OVERLOADS) {
+        emit_const(compiler, sk_fnptr_value(identifier->symbol->as.fn_overloads.overloads.fnptr));
+        return;
+    }
+
+    emit2(compiler, SK_OP_LOAD_LOCAL, (uint8_t)identifier->symbol->as.local.slot);
 }
 
 static void compile_call(struct sk_compiler *compiler, struct sk_ast_node *node)

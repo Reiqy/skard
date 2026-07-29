@@ -116,11 +116,15 @@ struct sk_ast_let {
     struct sk_ast_type type;
     bool has_initializer;
     struct sk_ast_node *expression;
+
+    struct sk_symbol *symbol;
 };
 
 struct sk_ast_assign {
     struct sk_token name;
     struct sk_ast_node *expression;
+
+    struct sk_symbol *symbol;
 };
 
 struct sk_ast_if {
@@ -154,6 +158,7 @@ struct sk_ast_fn {
     struct sk_ast_node *body;
 
     struct sk_symbol *symbol;
+    size_t locals_count;
 };
 
 struct sk_ast_program {

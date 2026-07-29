@@ -120,6 +120,7 @@ void sk_checker_init(struct sk_checker *checker)
     sk_scope_init(&checker->global_scope);
     checker->current_scope = &checker->global_scope;
     checker->current_function_type = NULL;
+    checker->next_local_slot = 0;
     checker->next_fnptr = 0;
 }
 
@@ -157,6 +158,7 @@ static struct sk_type *check_call(struct sk_checker *checker, struct sk_ast_node
 static void check_block(struct sk_checker *checker, struct sk_ast_node *node);
 static void check_let(
     struct sk_checker *checker,
+    struct sk_ast_node *node,
     struct sk_token name,
     bool has_type,
     const struct sk_ast_type *type_expr,
@@ -325,7 +327,7 @@ static void check_declaration(struct sk_checker *checker, struct sk_ast_node *no
 
 static void check_function(struct sk_checker *checker, struct sk_ast_node *node)
 {
-    const struct sk_ast_fn *function = &node->as.fn;
+    struct sk_ast_fn *function = &node->as.fn;
     struct sk_symbol *symbol = lookup_symbol(&checker->global_scope, &function->name);
     const struct sk_type *previous_function_type = checker->current_function_type;
 
@@ -333,9 +335,11 @@ static void check_function(struct sk_checker *checker, struct sk_ast_node *node)
         checker->current_function_type = symbol->as.fn_overloads.overloads.type;
     }
 
+    checker->next_local_slot = 0;
     checker_push_scope(checker);
     check_function_parameters(checker, function);
     check_node(checker, function->body);
+    function->locals_count = checker->next_local_slot;
     checker_pop_scope(checker);
     checker->current_function_type = previous_function_type;
 }
@@ -344,7 +348,7 @@ static void check_function_parameters(struct sk_checker *checker, const struct s
 {
     for (size_t i = 0; i < function->parameters.count; i++) {
         const struct sk_ast_parameter *parameter = &function->parameters.parameters[i];
-        check_let(checker, parameter->name, true, &parameter->type, false, NULL);
+        check_let(checker, NULL, parameter->name, true, &parameter->type, false, NULL);
     }
 }
 
@@ -433,6 +437,7 @@ static void check_node(struct sk_checker *checker, struct sk_ast_node *node)
         case SK_AST_LET:
             check_let(
                 checker,
+                node,
                 node->as.let.name,
                 node->as.let.has_type,
                 &node->as.let.type,
@@ -659,6 +664,7 @@ static void check_block(struct sk_checker *checker, struct sk_ast_node *node)
 
 static void check_let(
     struct sk_checker *checker,
+    struct sk_ast_node *node,
     struct sk_token name,
     bool has_type,
     const struct sk_ast_type *type_expr,
@@ -676,16 +682,29 @@ static void check_let(
         }
     }
 
+    if (checker->next_local_slot >= SK_MAX_LOCAL_SLOTS) {
+        checker_error(checker, "Too many local variables.");
+        return;
+    }
+
     const struct sk_symbol symbol = {
         .name = name,
         .type = SK_SYMBOL_LOCAL,
         .as.local = {
             .type = type,
+            .slot = checker->next_local_slot,
         },
     };
 
-    if (!checker_add_symbol(checker, symbol)) {
+    struct sk_symbol *stored = checker_add_symbol(checker, symbol);
+    if (!stored) {
         checker_error(checker, "Local already declared.");
+        return;
+    }
+
+    checker->next_local_slot++;
+    if (node != NULL) {
+        node->as.let.symbol = stored;
     }
 }
 
@@ -697,6 +716,8 @@ static struct sk_type *check_assignment(struct sk_checker *checker, struct sk_as
         check_expression(checker, node->as.assign.expression, NULL);
         return make_type(checker, SK_TYPE_INVALID);
     }
+
+    node->as.assign.symbol = symbol;
 
     if (symbol->type != SK_SYMBOL_LOCAL) {
         checker_error(checker, "Expected a local value.");
