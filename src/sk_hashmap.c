@@ -29,15 +29,15 @@ void sk_hashmap_free(struct sk_hashmap *hashmap)
     sk_hashmap_init(hashmap);
 }
 
-bool sk_hashmap_set(struct sk_hashmap *hashmap, const char *key, size_t key_len, void *value)
+bool sk_hashmap_set(struct sk_hashmap *hashmap, const char *key, const size_t key_len, void *value)
 {
     if ((double)hashmap->count + 1 > (double)hashmap->capacity * HASHMAP_MAX_LOAD_FACTOR) {
-        size_t capacity = sk_grow(hashmap->capacity);
+        const size_t capacity = sk_grow(hashmap->capacity);
         adjust_capacity(hashmap, capacity);
     }
 
     struct sk_hashmap_entry *entry = find(hashmap->entries, hashmap->capacity, key, key_len);
-    bool is_new = entry->key == NULL;
+    const bool is_new = entry->key == NULL;
     if (is_new) {
         hashmap->count++;
     }
@@ -48,13 +48,13 @@ bool sk_hashmap_set(struct sk_hashmap *hashmap, const char *key, size_t key_len,
     return is_new;
 }
 
-bool sk_hashmap_get(const struct sk_hashmap *hashmap, const char *key, size_t key_len, void **value)
+bool sk_hashmap_get(const struct sk_hashmap *hashmap, const char *key, const size_t key_len, void **value)
 {
     if (hashmap->count == 0) {
         return false;
     }
 
-    struct sk_hashmap_entry *entry = find(hashmap->entries, hashmap->capacity, key, key_len);
+    const struct sk_hashmap_entry *entry = find(hashmap->entries, hashmap->capacity, key, key_len);
     if (entry->key == NULL) {
         return false;
     }
@@ -63,7 +63,7 @@ bool sk_hashmap_get(const struct sk_hashmap *hashmap, const char *key, size_t ke
     return true;
 }
 
-static void adjust_capacity(struct sk_hashmap *hashmap, size_t new_capacity)
+static void adjust_capacity(struct sk_hashmap *hashmap, const size_t new_capacity)
 {
     assert(new_capacity > 0);
 
@@ -78,7 +78,7 @@ static void adjust_capacity(struct sk_hashmap *hashmap, size_t new_capacity)
 
     // Rehash old buffer.
     for (size_t i = 0; i < hashmap->capacity; i++) {
-        struct sk_hashmap_entry *entry = &hashmap->entries[i];
+        const struct sk_hashmap_entry *entry = &hashmap->entries[i];
         if (entry->key == NULL) {
             continue;
         }
@@ -94,7 +94,11 @@ static void adjust_capacity(struct sk_hashmap *hashmap, size_t new_capacity)
     hashmap->capacity = new_capacity;
 }
 
-static struct sk_hashmap_entry *find(struct sk_hashmap_entry *entries, size_t capacity, const char *key, size_t key_len)
+static struct sk_hashmap_entry *find(
+    struct sk_hashmap_entry *entries,
+    const size_t capacity,
+    const char *key,
+    const size_t key_len)
 {
     uint32_t index = hash(key, key_len) % capacity;
     for (;;) {
@@ -107,7 +111,8 @@ static struct sk_hashmap_entry *find(struct sk_hashmap_entry *entries, size_t ca
     }
 }
 
-static uint32_t hash(const char *key, size_t key_len)
+// 32-bit FNV-1a hash, by Glenn Fowler, Landon Curt Noll, and Kiem-Phong Vo.
+static uint32_t hash(const char *key, const size_t key_len)
 {
     uint32_t hash = 2166136261u;
     for (size_t i = 0; i < key_len; i++) {
