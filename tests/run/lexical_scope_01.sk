@@ -1,0 +1,10 @@
+fn main() {
+    let value: Number = 1
+
+    {
+        let value: Number = 2
+        print("%n", value)
+    }
+
+    print("%n", value)
+}

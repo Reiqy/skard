@@ -1,0 +1,7 @@
+fn main() {
+    if (true) {
+        let branch: Number = 1
+    }
+
+    print("%n", branch)
+}

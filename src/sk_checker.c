@@ -657,9 +657,13 @@ static struct sk_type *check_call(struct sk_checker *checker, struct sk_ast_node
 
 static void check_block(struct sk_checker *checker, struct sk_ast_node *node)
 {
+    checker_push_scope(checker);
+
     for (size_t i = 0; i < node->as.block.contents.count; i++) {
         check_node(checker, node->as.block.contents.nodes[i]);
     }
+
+    checker_pop_scope(checker);
 }
 
 static void check_let(

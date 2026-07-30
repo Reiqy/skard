@@ -1,0 +1,12 @@
+fn main() {
+    let value: Number = 1
+
+    if (true) {
+        value = value + 1
+        {
+            value = value + 1
+        }
+    }
+
+    print("%n", value)
+}
