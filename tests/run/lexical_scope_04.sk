@@ -1,6 +1,7 @@
 fn main() {
     {
         let value: Number = 1
-        let value: Number = 2
+        let value: Number = 1
+        print("%n", value)
     }
 }

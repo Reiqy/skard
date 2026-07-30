@@ -13,6 +13,10 @@ static struct sk_symbol *sk_symbol_table_add(
     struct sk_symbol_arena *arena,
     struct sk_symbol_table *table,
     struct sk_symbol symbol);
+static struct sk_symbol *sk_symbol_table_replace(
+    struct sk_symbol_arena *arena,
+    struct sk_symbol_table *table,
+    struct sk_symbol symbol);
 
 static void sk_symbol_arena_init(struct sk_symbol_arena *arena, size_t block_capacity)
 {
@@ -97,6 +101,25 @@ static struct sk_symbol *sk_symbol_table_add(
 
     sk_hashmap_set(&table->symbols_map, stored->name.start, stored->name.length, stored);
 
+    return stored;
+}
+
+static struct sk_symbol *sk_symbol_table_replace(
+    struct sk_symbol_arena *arena,
+    struct sk_symbol_table *table,
+    struct sk_symbol symbol)
+{
+    void *existing = NULL;
+    bool is_new = !sk_hashmap_get(&table->symbols_map, symbol.name.start, symbol.name.length, &existing);
+
+    struct sk_symbol *stored = sk_symbol_arena_alloc(arena);
+    *stored = symbol;
+
+    if (is_new) {
+        table->count++;
+    }
+
+    sk_hashmap_set(&table->symbols_map, stored->name.start, stored->name.length, stored);
     return stored;
 }
 
@@ -700,11 +723,10 @@ static void check_let(
         },
     };
 
-    struct sk_symbol *stored = checker_add_symbol(checker, symbol);
-    if (!stored) {
-        checker_error(checker, "Local already declared.");
-        return;
-    }
+    struct sk_symbol *stored = sk_symbol_table_replace(
+        &checker->symbol_arena,
+        &checker->current_scope->symbols,
+        symbol);
 
     checker->next_local_slot++;
     if (node != NULL) {
