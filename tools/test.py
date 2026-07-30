@@ -50,13 +50,14 @@ def run_test_program(
 ) -> Optional[subprocess.CompletedProcess]:
     try:
         return subprocess.run(
-            [executable, command, str(test_file)],
+            [executable, command, display_path(test_file)],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
             check=False,
+            cwd=PROJECT_ROOT,
         )
     except subprocess.TimeoutExpired as error:
         print_status(

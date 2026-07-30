@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "sk_log.h"
+
 static const struct sk_ast_type EMPTY_AST_TYPE = {0};
 
 static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token);
@@ -349,10 +351,10 @@ static struct sk_ast_node *parse_unary(struct sk_parser *parser);
 static struct sk_ast_node *parse_literal(struct sk_parser *parser);
 static struct sk_ast_node *parse_identifier(struct sk_parser *parser);
 
-void sk_parser_init(struct sk_parser *parser, const char *source)
+void sk_parser_init(struct sk_parser *parser, const char *filename, const char *source)
 {
     sk_ast_node_arena_init(&parser->arena, 256);
-    sk_lexer_init(&parser->lexer, source);
+    sk_lexer_init(&parser->lexer, filename, source);
     parser->is_panic = false;
     parser->has_error = false;
 }
@@ -389,7 +391,7 @@ static void error(struct sk_parser *parser, const struct sk_token *token, const 
     parser->is_panic = true;
     parser->has_error = true;
 
-    fprintf(stderr, "[line %zu] Error: %s\n", token->line, message);
+    sk_error(token->filename, token->line, token->column, message);
 }
 
 static void synchronize(struct sk_parser *parser)

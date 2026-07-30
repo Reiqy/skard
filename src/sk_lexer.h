@@ -52,16 +52,22 @@ struct sk_token {
     enum sk_token_type type;
     const char *start;
     size_t length;
+    const char *filename;
     size_t line;
+    size_t column;
 };
 
 struct sk_lexer {
     const char *start;
     const char *current;
+    const char *filename;
+    size_t start_line;
     size_t line;
+    size_t start_column;
+    size_t column;
 };
 
-void sk_lexer_init(struct sk_lexer *lexer, const char *source);
+void sk_lexer_init(struct sk_lexer *lexer, const char *filename, const char *source);
 
 struct sk_token sk_lexer_next(struct sk_lexer *lexer);
 

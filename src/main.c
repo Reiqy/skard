@@ -78,7 +78,7 @@ static int file(const char *filename)
     }
 
     struct sk_parser parser;
-    sk_parser_init(&parser, source);
+    sk_parser_init(&parser, filename, source);
 
     struct sk_ast_node *ast = sk_parser_parse(&parser);
     if (parser.has_error) {
@@ -134,7 +134,7 @@ static int ast(const char *filename)
     }
 
     struct sk_parser parser;
-    sk_parser_init(&parser, source);
+    sk_parser_init(&parser, filename, source);
 
     const struct sk_ast_node *node = sk_parser_parse(&parser);
     if (parser.has_error) {

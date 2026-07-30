@@ -15,7 +15,7 @@ struct sk_parser {
     bool is_panic;
 };
 
-void sk_parser_init(struct sk_parser *parser, const char *source);
+void sk_parser_init(struct sk_parser *parser, const char *filename, const char *source);
 void sk_parser_free(struct sk_parser *parser);
 struct sk_ast_node *sk_parser_parse(struct sk_parser *parser);
 
