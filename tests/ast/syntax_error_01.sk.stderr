@@ -1,1 +1,1 @@
-tests\ast\syntax_error_01.sk:1:10: error: Expected parameter name.
+tests/ast/syntax_error_01.sk:1:10: error: Expected parameter name.

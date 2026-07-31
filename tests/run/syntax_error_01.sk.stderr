@@ -1,1 +1,1 @@
-tests\run\syntax_error_01.sk:1:10: error: Expected parameter name.
+tests/run/syntax_error_01.sk:1:10: error: Expected parameter name.

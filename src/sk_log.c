@@ -6,10 +6,18 @@
 
 static const char *get_log_level_string(enum sk_log_level level);
 
+static void print_filename(const char *filename)
+{
+    for (const char *c = filename; *c != '\0'; c++) {
+        fputc(*c == '\\' ? '/' : *c, stderr);
+    }
+}
+
 void sk_log(enum sk_log_level level, const char *filename, size_t line, size_t column, const char *message)
 {
     const char *level_string = get_log_level_string(level);
-    fprintf(stderr, "%s:%zu:%zu: %s: %s\n", filename, line, column, level_string, message);
+    print_filename(filename);
+    fprintf(stderr, ":%zu:%zu: %s: %s\n", line, column, level_string, message);
 }
 
 static const char *get_log_level_string(const enum sk_log_level level)
