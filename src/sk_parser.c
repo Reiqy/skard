@@ -45,8 +45,14 @@ static struct sk_ast_node *ast_while_new(
     struct sk_parser *parser,
     struct sk_ast_node *condition,
     struct sk_ast_node *body);
-static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression);
-static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node_array args);
+static struct sk_ast_node *ast_return_new(
+    struct sk_parser *parser,
+    struct sk_token keyword,
+    struct sk_ast_node *expression);
+static struct sk_ast_node *ast_print_new(
+    struct sk_parser *parser,
+    struct sk_token keyword,
+    struct sk_ast_node_array args);
 
 static struct sk_ast_node *ast_fn_new(
     struct sk_parser *parser,
@@ -240,24 +246,32 @@ static struct sk_ast_node *ast_while_new(
     return whilen;
 }
 
-static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_ast_node *expression)
+static struct sk_ast_node *ast_return_new(
+    struct sk_parser *parser,
+    const struct sk_token keyword,
+    struct sk_ast_node *expression)
 {
     struct sk_ast_node *returnn = sk_ast_node_arena_alloc(&parser->arena);
     *returnn = (struct sk_ast_node) {
         .type = SK_AST_RETURN,
         .as.returnn = (struct sk_ast_return) {
+            .keyword = keyword,
             .expression = expression,
         }
     };
     return returnn;
 }
 
-static struct sk_ast_node *ast_print_new(struct sk_parser *parser, const struct sk_ast_node_array args)
+static struct sk_ast_node *ast_print_new(
+    struct sk_parser *parser,
+    const struct sk_token keyword,
+    const struct sk_ast_node_array args)
 {
     struct sk_ast_node *print = sk_ast_node_arena_alloc(&parser->arena);
     *print = (struct sk_ast_node) {
         .type = SK_AST_PRINT,
         .as.print = (struct sk_ast_print) {
+            .keyword = keyword,
             .args = args,
         },
     };
@@ -682,21 +696,23 @@ static struct sk_ast_node *parse_while_statement(struct sk_parser *parser)
 static struct sk_ast_node *parse_return_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_RETURN, "Expected 'return'.");
+    const struct sk_token keyword = parser->previous;
 
     struct sk_ast_node *expression = NULL;
     if (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
         expression = parse_expression(parser);
     }
 
-    return ast_return_new(parser, expression);
+    return ast_return_new(parser, keyword, expression);
 }
 
 static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_PRINT, "Expected 'print'.");
+    const struct sk_token keyword = parser->previous;
 
     const struct sk_ast_node_array args = parse_args(parser);
-    return ast_print_new(parser, args);
+    return ast_print_new(parser, keyword, args);
 }
 
 static enum precedence get_precedence(const enum sk_token_type token_type)

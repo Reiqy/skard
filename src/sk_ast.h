@@ -139,10 +139,12 @@ struct sk_ast_while {
 };
 
 struct sk_ast_return {
+    struct sk_token keyword;
     struct sk_ast_node *expression;
 };
 
 struct sk_ast_print {
+    struct sk_token keyword;
     struct sk_ast_node_array args;
 };
 

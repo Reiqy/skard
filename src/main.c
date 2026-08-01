@@ -113,6 +113,12 @@ static int file(const char *filename)
     sk_checker_free(&checker);
     sk_parser_free(&parser);
 
+    if (program.functions.count == 0) {
+        sk_program_free(&program);
+        free(source);
+        return EXIT_SUCCESS;
+    }
+
     struct sk_vm vm;
     sk_vm_init(&vm);
 

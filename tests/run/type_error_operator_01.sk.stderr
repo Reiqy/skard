@@ -1,1 +1,1 @@
-Semantic error: Arithmetic operator requires Number operands.
+tests/run/type_error_operator_01.sk:2:22: error: Arithmetic operator requires Number operands.

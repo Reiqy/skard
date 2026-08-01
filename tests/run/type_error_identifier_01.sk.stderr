@@ -1,1 +1,1 @@
-Semantic error: Unknown identifier.
+tests/run/type_error_identifier_01.sk:2:17: error: Unknown identifier.

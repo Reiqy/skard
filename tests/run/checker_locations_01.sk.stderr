@@ -1,0 +1,2 @@
+tests/run/checker_locations_01.sk:2:25: error: Expression type does not match expected type.
+tests/run/checker_locations_01.sk:3:27: error: Expression type does not match expected type.

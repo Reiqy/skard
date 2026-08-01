@@ -266,6 +266,10 @@ static void compile_while_statement(struct sk_compiler *compiler, struct sk_ast_
 static void compile_print_statement(struct sk_compiler *compiler, struct sk_ast_node *node)
 {
     struct sk_ast_print *print = &node->as.print;
+    if (print->args.count == 0) {
+        return;
+    }
+
     for (size_t i = print->args.count; i > 0; i--) {
         compile_expression(compiler, print->args.nodes[i - 1]);
     }

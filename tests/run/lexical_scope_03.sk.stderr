@@ -1,1 +1,1 @@
-Semantic error: Unknown identifier.
+tests/run/lexical_scope_03.sk:6:17: error: Unknown identifier.

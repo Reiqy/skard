@@ -1,0 +1,4 @@
+fn main() {
+    let first: Number = true
+    let second: Boolean = 1
+}

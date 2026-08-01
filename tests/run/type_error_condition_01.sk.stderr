@@ -1,1 +1,1 @@
-Semantic error: Expression type does not match expected type.
+tests/run/type_error_condition_01.sk:2:9: error: Expression type does not match expected type.

@@ -1,1 +1,1 @@
-Semantic error: Too many local variables.
+tests/run/too_many_locals_01.sk:1:3483: error: Too many local variables.

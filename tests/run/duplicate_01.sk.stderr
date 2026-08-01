@@ -1,1 +1,1 @@
-Semantic error: Function already declared.
+tests/run/duplicate_01.sk:2:4: error: Function already declared.
