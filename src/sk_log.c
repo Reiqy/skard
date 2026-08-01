@@ -13,7 +13,12 @@ static void print_filename(const char *filename)
     }
 }
 
-void sk_log(enum sk_log_level level, const char *filename, size_t line, size_t column, const char *message)
+void sk_log(
+    const enum sk_log_level level,
+    const char *filename,
+    const size_t line,
+    const size_t column,
+    const char *message)
 {
     const char *level_string = get_log_level_string(level);
     print_filename(filename);

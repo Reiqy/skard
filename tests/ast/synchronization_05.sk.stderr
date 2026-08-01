@@ -1,0 +1,2 @@
+tests/ast/synchronization_05.sk:2:9: error: Expected variable name.
+tests/ast/synchronization_05.sk:3:9: error: Expected variable name.

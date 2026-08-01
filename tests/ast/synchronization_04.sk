@@ -1,0 +1,5 @@
+fn broken() {
+    print(1)
+fn valid() {
+    print(2)
+}

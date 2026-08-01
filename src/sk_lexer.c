@@ -3,6 +3,21 @@
 #include <stdbool.h>
 #include <string.h>
 
+struct sk_token_set sk_token_set_new(void)
+{
+    return (struct sk_token_set) {0};
+}
+
+void sk_token_set_add(struct sk_token_set *set, const enum sk_token_type type)
+{
+    set->bits |= UINT64_C(1) << type;
+}
+
+bool sk_token_set_has(const struct sk_token_set *set, const enum sk_token_type type)
+{
+    return (set->bits & (UINT64_C(1) << type)) != 0;
+}
+
 void sk_lexer_init(struct sk_lexer *lexer, const char *filename, const char *source)
 {
     lexer->start = source;

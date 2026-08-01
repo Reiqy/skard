@@ -58,7 +58,7 @@ static struct sk_ast_node *ast_fn_new(
 
 static struct sk_ast_node *ast_program_new(struct sk_parser *parser);
 
-static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_token token)
+static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, const struct sk_token token)
 {
     struct sk_ast_node *literal = sk_ast_node_arena_alloc(&parser->arena);
     *literal = (struct sk_ast_node) {
@@ -71,7 +71,7 @@ static struct sk_ast_node *ast_literal_new(struct sk_parser *parser, struct sk_t
     return literal;
 }
 
-static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct sk_token token)
+static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, const struct sk_token token)
 {
     struct sk_ast_node *identifier = sk_ast_node_arena_alloc(&parser->arena);
     *identifier = (struct sk_ast_node) {
@@ -86,7 +86,7 @@ static struct sk_ast_node *ast_identifier_new(struct sk_parser *parser, struct s
 
 static struct sk_ast_node *ast_unary_new(
     struct sk_parser *parser,
-    struct sk_token operator,
+    const struct sk_token operator,
     struct sk_ast_node * expression)
 {
     struct sk_ast_node *unary = sk_ast_node_arena_alloc(&parser->arena);
@@ -103,7 +103,7 @@ static struct sk_ast_node *ast_unary_new(
 
 static struct sk_ast_node *ast_binary_new(
     struct sk_parser *parser,
-    struct sk_token operator,
+    const struct sk_token operator,
     struct sk_ast_node * left,
     struct sk_ast_node *right)
 {
@@ -123,7 +123,7 @@ static struct sk_ast_node *ast_binary_new(
 static struct sk_ast_node *ast_call_new(
     struct sk_parser *parser,
     struct sk_ast_node *callee,
-    struct sk_ast_node_array args)
+    const struct sk_ast_node_array args)
 {
     struct sk_ast_node *call = sk_ast_node_arena_alloc(&parser->arena);
     *call = (struct sk_ast_node) {
@@ -152,7 +152,7 @@ static struct sk_ast_node *ast_expr_stmt_new(struct sk_parser *parser, struct sk
 
 static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
 {
-    struct sk_ast_block inner = {0};
+    const struct sk_ast_block inner = {0};
     struct sk_ast_node *block = sk_ast_node_arena_alloc(&parser->arena);
     *block = (struct sk_ast_node) {
         .type = SK_AST_BLOCK,
@@ -166,10 +166,10 @@ static struct sk_ast_node *ast_block_new(struct sk_parser *parser)
 
 static struct sk_ast_node *ast_let_new(
     struct sk_parser *parser,
-    struct sk_token name,
-    bool has_type,
-    struct sk_ast_type type,
-    bool has_initializer,
+    const struct sk_token name,
+    const bool has_type,
+    const struct sk_ast_type type,
+    const bool has_initializer,
     struct sk_ast_node *expression)
 {
     struct sk_ast_node *let = sk_ast_node_arena_alloc(&parser->arena);
@@ -189,7 +189,7 @@ static struct sk_ast_node *ast_let_new(
 
 static struct sk_ast_node *ast_assign_new(
     struct sk_parser *parser,
-    struct sk_token name,
+    const struct sk_token name,
     struct sk_ast_node *expression)
 {
     struct sk_ast_node *assign = sk_ast_node_arena_alloc(&parser->arena);
@@ -252,7 +252,7 @@ static struct sk_ast_node *ast_return_new(struct sk_parser *parser, struct sk_as
     return returnn;
 }
 
-static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast_node_array args)
+static struct sk_ast_node *ast_print_new(struct sk_parser *parser, const struct sk_ast_node_array args)
 {
     struct sk_ast_node *print = sk_ast_node_arena_alloc(&parser->arena);
     *print = (struct sk_ast_node) {
@@ -267,10 +267,10 @@ static struct sk_ast_node *ast_print_new(struct sk_parser *parser, struct sk_ast
 
 static struct sk_ast_node *ast_fn_new(
     struct sk_parser *parser,
-    struct sk_token name,
-    struct sk_ast_parameter_array parameters,
-    bool has_return_type,
-    struct sk_ast_type return_type,
+    const struct sk_token name,
+    const struct sk_ast_parameter_array parameters,
+    const bool has_return_type,
+    const struct sk_ast_type return_type,
     struct sk_ast_node *body)
 {
     struct sk_ast_node *fn = sk_ast_node_arena_alloc(&parser->arena);
@@ -290,7 +290,7 @@ static struct sk_ast_node *ast_fn_new(
 
 static struct sk_ast_node *ast_program_new(struct sk_parser *parser)
 {
-    struct sk_ast_program inner = {0};
+    const struct sk_ast_program inner = {0};
     struct sk_ast_node *program = sk_ast_node_arena_alloc(&parser->arena);
     *program = (struct sk_ast_node) {
         .type = SK_AST_PROGRAM,
@@ -303,7 +303,12 @@ static struct sk_ast_node *ast_program_new(struct sk_parser *parser)
 }
 
 static void error(struct sk_parser *parser, const struct sk_token *token, const char *message);
-static void synchronize(struct sk_parser *parser);
+
+static void synchronize_until(struct sk_parser *parser, const struct sk_token_set *set);
+static void synchronize_top_level(struct sk_parser *parser);
+static void synchronize_scope(struct sk_parser *parser);
+static void add_declaration_starters(struct sk_token_set *set);
+static void add_statement_starters(struct sk_token_set *set);
 
 static bool check(const struct sk_parser *parser, enum sk_token_type type);
 static bool match(struct sk_parser *parser, enum sk_token_type type);
@@ -346,7 +351,7 @@ static struct sk_ast_node *parse_prefix(struct sk_parser *parser);
 static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_node *left);
 static struct sk_ast_node *parse_grouping(struct sk_parser *parser);
 static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_node *left);
-static struct sk_ast_node *parse_assignment(struct sk_parser *parser, struct sk_ast_node *left);
+static struct sk_ast_node *parse_assignment(struct sk_parser *parser, const struct sk_ast_node *left);
 static struct sk_ast_node *parse_unary(struct sk_parser *parser);
 static struct sk_ast_node *parse_literal(struct sk_parser *parser);
 static struct sk_ast_node *parse_identifier(struct sk_parser *parser);
@@ -376,7 +381,7 @@ struct sk_ast_node *sk_parser_parse(struct sk_parser *parser)
             sk_ast_node_array_add(&program->as.program.declarations, declaration);
         }
 
-        synchronize(parser);
+        synchronize_top_level(parser);
     }
 
     return program;
@@ -394,32 +399,68 @@ static void error(struct sk_parser *parser, const struct sk_token *token, const 
     sk_error(token->filename, token->line, token->column, message);
 }
 
-static void synchronize(struct sk_parser *parser)
+static void synchronize_until(struct sk_parser *parser, const struct sk_token_set *set)
 {
     if (!parser->is_panic) {
         return;
     }
 
     parser->is_panic = false;
+    size_t brace_depth = 0;
     while (parser->current.type != SK_TOKEN_EOF) {
-        switch (parser->current.type) {
-            case SK_TOKEN_FN:
-                return;
+        if (brace_depth == 0 && sk_token_set_has(set, parser->current.type)) {
+            return;
+        }
 
-            default:
-                break;
+        if (parser->current.type == SK_TOKEN_LBRACE) {
+            brace_depth++;
+        } else if (parser->current.type == SK_TOKEN_RBRACE && brace_depth > 0) {
+            brace_depth--;
         }
 
         advance(parser);
     }
 }
 
-static bool check(const struct sk_parser *parser, enum sk_token_type type)
+static void synchronize_top_level(struct sk_parser *parser)
+{
+    struct sk_token_set stop_tokens = sk_token_set_new();
+    add_declaration_starters(&stop_tokens);
+
+    synchronize_until(parser, &stop_tokens);
+}
+
+static void synchronize_scope(struct sk_parser *parser)
+{
+    struct sk_token_set stop_tokens = sk_token_set_new();
+    add_declaration_starters(&stop_tokens);
+    add_statement_starters(&stop_tokens);
+    sk_token_set_add(&stop_tokens, SK_TOKEN_RBRACE);
+
+    synchronize_until(parser, &stop_tokens);
+}
+
+static void add_declaration_starters(struct sk_token_set *set)
+{
+    sk_token_set_add(set, SK_TOKEN_FN);
+}
+
+static void add_statement_starters(struct sk_token_set *set)
+{
+    sk_token_set_add(set, SK_TOKEN_LET);
+    sk_token_set_add(set, SK_TOKEN_IF);
+    sk_token_set_add(set, SK_TOKEN_WHILE);
+    sk_token_set_add(set, SK_TOKEN_RETURN);
+    sk_token_set_add(set, SK_TOKEN_PRINT);
+    sk_token_set_add(set, SK_TOKEN_LBRACE);
+}
+
+static bool check(const struct sk_parser *parser, const enum sk_token_type type)
 {
     return parser->current.type == type;
 }
 
-static bool match(struct sk_parser *parser, enum sk_token_type type)
+static bool match(struct sk_parser *parser, const enum sk_token_type type)
 {
     if (!check(parser, type)) {
         return false;
@@ -443,7 +484,7 @@ static void advance(struct sk_parser *parser)
     }
 }
 
-static void consume(struct sk_parser *parser, enum sk_token_type type, const char *message)
+static void consume(struct sk_parser *parser, const enum sk_token_type type, const char *message)
 {
     if (check(parser, type)) {
         advance(parser);
@@ -470,7 +511,7 @@ static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_s
 static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_IDENTIFIER, "Expected identifier.");
-    struct sk_token name = parser->previous;
+    const struct sk_token name = parser->previous;
 
     consume(parser, SK_TOKEN_LPAREN, "Expected '('.");
 
@@ -480,10 +521,10 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
     if (!check(parser, SK_TOKEN_RPAREN)) {
         do {
             consume(parser, SK_TOKEN_IDENTIFIER, "Expected parameter name.");
-            struct sk_token parameter_name = parser->previous;
+            const struct sk_token parameter_name = parser->previous;
 
             consume(parser, SK_TOKEN_COLON, "Expected ':' after parameter name.");
-            struct sk_ast_type parameter_type = parse_type(parser, "Expected parameter type.");
+            const struct sk_ast_type parameter_type = parse_type(parser, "Expected parameter type.");
 
             sk_ast_parameter_array_add(
                 &parameters,
@@ -496,7 +537,7 @@ static struct sk_ast_node *parse_fn_declaration(struct sk_parser *parser)
 
     consume(parser, SK_TOKEN_RPAREN, "Expected ')'.");
 
-    bool has_return_type = match(parser, SK_TOKEN_RARROW);
+    const bool has_return_type = match(parser, SK_TOKEN_RARROW);
     struct sk_ast_type return_type = EMPTY_AST_TYPE;
     if (has_return_type) {
         return_type = parse_type(parser, "Expected return type.");
@@ -570,8 +611,9 @@ static struct sk_ast_node *parse_block(struct sk_parser *parser)
     while (!check(parser, SK_TOKEN_RBRACE) && !check(parser, SK_TOKEN_EOF)) {
         const bool is_statement_allowed = true;
         struct sk_ast_node *statement = parse_declaration(parser, is_statement_allowed);
-        if (statement == NULL) {
-            return NULL;
+        if (parser->is_panic) {
+            synchronize_scope(parser);
+            continue;
         }
 
         sk_ast_node_array_add(&block->as.block.contents, statement);
@@ -586,7 +628,7 @@ static struct sk_ast_node *parse_let_statement(struct sk_parser *parser)
     consume(parser, SK_TOKEN_LET, "Expected 'let'.");
 
     consume(parser, SK_TOKEN_IDENTIFIER, "Expected variable name.");
-    struct sk_token name = parser->previous;
+    const struct sk_token name = parser->previous;
 
     bool has_type = false;
     struct sk_ast_type type = EMPTY_AST_TYPE;
@@ -653,11 +695,11 @@ static struct sk_ast_node *parse_print_statement(struct sk_parser *parser)
 {
     consume(parser, SK_TOKEN_PRINT, "Expected 'print'.");
 
-    struct sk_ast_node_array args = parse_args(parser);
+    const struct sk_ast_node_array args = parse_args(parser);
     return ast_print_new(parser, args);
 }
 
-static enum precedence get_precedence(enum sk_token_type token_type)
+static enum precedence get_precedence(const enum sk_token_type token_type)
 {
     switch (token_type) {
         case SK_TOKEN_ASSIGN:
@@ -757,7 +799,7 @@ static struct sk_ast_node *parse_infix(struct sk_parser *parser, struct sk_ast_n
 
 static struct sk_ast_node *parse_call(struct sk_parser *parser, struct sk_ast_node *callee)
 {
-    struct sk_ast_node_array args = parse_args(parser);
+    const struct sk_ast_node_array args = parse_args(parser);
     return ast_call_new(parser, callee, args);
 }
 
@@ -770,13 +812,13 @@ static struct sk_ast_node *parse_grouping(struct sk_parser *parser)
 
 static struct sk_ast_node *parse_binary(struct sk_parser *parser, struct sk_ast_node *left)
 {
-    struct sk_token operator= parser->previous;
-    enum precedence precedence = get_precedence(operator.type);
+    const struct sk_token operator= parser->previous;
+    const enum precedence precedence = get_precedence(operator.type);
     struct sk_ast_node *right = parse_pratt(parser, precedence + 1);
     return ast_binary_new(parser, operator, left, right);
 }
 
-static struct sk_ast_node *parse_assignment(struct sk_parser *parser, struct sk_ast_node *left)
+static struct sk_ast_node *parse_assignment(struct sk_parser *parser, const struct sk_ast_node *left)
 {
     struct sk_ast_node *right = parse_pratt(parser, PREC_ASSIGNMENT);
     if (left == NULL || left->type != SK_AST_IDENTIFIER) {
@@ -789,7 +831,7 @@ static struct sk_ast_node *parse_assignment(struct sk_parser *parser, struct sk_
 
 static struct sk_ast_node *parse_unary(struct sk_parser *parser)
 {
-    struct sk_token operator= parser->previous;
+    const struct sk_token operator= parser->previous;
     struct sk_ast_node *expression = parse_pratt(parser, PREC_UNARY);
     return ast_unary_new(parser, operator, expression);
 }

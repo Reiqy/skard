@@ -1,0 +1,9 @@
+fn first() {
+    let = 1
+    let = 2
+}
+
+fn second() {
+    let = 3
+    let = 4
+}

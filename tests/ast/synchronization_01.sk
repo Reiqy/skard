@@ -1,0 +1,6 @@
+fn broken( {
+}
+
+fn valid() {
+    print(1)
+}

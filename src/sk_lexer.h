@@ -1,7 +1,9 @@
 #ifndef SK_LEXER_H
 #define SK_LEXER_H
 
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 enum sk_token_type {
     SK_TOKEN_EOF,
@@ -56,6 +58,14 @@ struct sk_token {
     size_t line;
     size_t column;
 };
+
+struct sk_token_set {
+    uint64_t bits;
+};
+
+struct sk_token_set sk_token_set_new(void);
+void sk_token_set_add(struct sk_token_set *set, enum sk_token_type type);
+bool sk_token_set_has(const struct sk_token_set *set, enum sk_token_type type);
 
 struct sk_lexer {
     const char *start;
