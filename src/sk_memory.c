@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void *sk_reallocate(void *ptr, size_t new_size)
+void *sk_reallocate(void *ptr, const size_t new_size)
 {
     if (new_size == 0) {
         free(ptr);

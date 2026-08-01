@@ -12,7 +12,7 @@ struct sk_compiler {
     bool has_error;
 };
 
-bool sk_compiler_compile(struct sk_compiler *compiler, struct sk_ast_node *node, struct sk_program *program);
+bool sk_compiler_compile(struct sk_compiler *compiler, const struct sk_ast_node *node, struct sk_program *program);
 
 
 #endif // SK_COMPILER_H

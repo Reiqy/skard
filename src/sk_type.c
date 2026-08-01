@@ -4,7 +4,7 @@
 
 static struct sk_type_arena_block *type_arena_add_block(struct sk_type_arena *arena, size_t capacity);
 
-void sk_type_arena_init(struct sk_type_arena *arena, size_t block_capacity)
+void sk_type_arena_init(struct sk_type_arena *arena, const size_t block_capacity)
 {
     arena->blocks = NULL;
     arena->capacity = 0;
@@ -29,7 +29,7 @@ struct sk_type *sk_type_arena_alloc(struct sk_type_arena *arena)
     return sk_type_arena_alloc_array(arena, 1);
 }
 
-struct sk_type *sk_type_arena_alloc_array(struct sk_type_arena *arena, size_t count)
+struct sk_type *sk_type_arena_alloc_array(struct sk_type_arena *arena, const size_t count)
 {
     if (count == 0) {
         return NULL;
@@ -60,7 +60,7 @@ struct sk_type *sk_type_arena_alloc_array(struct sk_type_arena *arena, size_t co
     return result;
 }
 
-static struct sk_type_arena_block *type_arena_add_block(struct sk_type_arena *arena, size_t capacity)
+static struct sk_type_arena_block *type_arena_add_block(struct sk_type_arena *arena, const size_t capacity)
 {
     if (arena->count >= arena->capacity) {
         arena->capacity = sk_grow(arena->capacity);

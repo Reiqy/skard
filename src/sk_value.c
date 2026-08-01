@@ -4,12 +4,12 @@
 
 #include "sk_memory.h"
 
-sk_number sk_number_from_string(const char *str, size_t length)
+sk_number sk_number_from_string(const char *str, const size_t length)
 {
     sk_number number = 0.0;
     size_t index = 0;
     while (index < length && str[index] >= '0' && str[index] <= '9') {
-        int digit = str[index] - '0';
+        const int digit = str[index] - '0';
         number = number * 10 + digit;
         index++;
     }
@@ -23,7 +23,7 @@ sk_number sk_number_from_string(const char *str, size_t length)
     sk_number fraction = 0.0;
     sk_number divisor = 1.0;
     while (index < length) {
-        int digit = str[index] - '0';
+        const int digit = str[index] - '0';
         fraction = fraction * 10 + digit;
         divisor *= 10;
         index++;
@@ -33,14 +33,14 @@ sk_number sk_number_from_string(const char *str, size_t length)
     return number;
 }
 
-void sk_number_print(struct sk_value value)
+void sk_number_print(const struct sk_value value)
 {
     printf("%lf", sk_as_number(value));
 }
 
-void sk_boolean_print(struct sk_value value)
+void sk_boolean_print(const struct sk_value value)
 {
-    sk_bool boolean = sk_as_boolean(value);
+    const sk_bool boolean = sk_as_boolean(value);
     if (boolean) {
         printf("true");
         return;
@@ -49,12 +49,12 @@ void sk_boolean_print(struct sk_value value)
     printf("false");
 }
 
-void sk_fnptr_print(struct sk_value value)
+void sk_fnptr_print(const struct sk_value value)
 {
     printf("fn<@%zu>", sk_as_fnptr(value));
 }
 
-void sk_string_print(struct sk_value value)
+void sk_string_print(const struct sk_value value)
 {
     printf("%s", sk_as_cstring(value));
 }
@@ -72,7 +72,7 @@ void sk_value_array_free(struct sk_value_array *array)
     sk_value_array_init(array);
 }
 
-void sk_value_array_add(struct sk_value_array *array, struct sk_value value)
+void sk_value_array_add(struct sk_value_array *array, const struct sk_value value)
 {
     if (array->count >= array->capacity) {
         array->capacity = sk_grow(array->capacity);
@@ -83,7 +83,7 @@ void sk_value_array_add(struct sk_value_array *array, struct sk_value value)
     array->count++;
 }
 
-struct sk_value sk_value_array_get(const struct sk_value_array *array, size_t index)
+struct sk_value sk_value_array_get(const struct sk_value_array *array, const size_t index)
 {
     return array->array[index];
 }

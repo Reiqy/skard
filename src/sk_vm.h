@@ -82,7 +82,7 @@ struct sk_vm_stack {
 };
 
 void sk_vm_stack_init(struct sk_vm_stack *stack);
-void sk_vm_stack_free(struct sk_vm_stack *stack);
+void sk_vm_stack_free(const struct sk_vm_stack *stack);
 void sk_vm_stack_push(struct sk_vm_stack *stack, struct sk_value value);
 struct sk_value sk_vm_stack_pop(struct sk_vm_stack *stack);
 struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, int depth);
@@ -99,7 +99,7 @@ struct sk_vm {
 };
 
 void sk_vm_init(struct sk_vm *vm);
-void sk_vm_free(struct sk_vm *vm);
+void sk_vm_free(const struct sk_vm *vm);
 
 enum sk_vm_result {
     SK_VM_OK,

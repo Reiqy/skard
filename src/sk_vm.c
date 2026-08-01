@@ -23,7 +23,7 @@ void sk_chunk_free(struct sk_chunk *chunk)
     sk_chunk_init(chunk);
 }
 
-void sk_chunk_add(struct sk_chunk *chunk, uint8_t byte)
+void sk_chunk_add(struct sk_chunk *chunk, const uint8_t byte)
 {
     if (chunk->count >= chunk->capacity) {
         chunk->capacity = sk_grow(chunk->capacity);
@@ -34,10 +34,10 @@ void sk_chunk_add(struct sk_chunk *chunk, uint8_t byte)
     chunk->count++;
 }
 
-void sk_chunk_add_const(struct sk_chunk *chunk, struct sk_value constant)
+void sk_chunk_add_const(struct sk_chunk *chunk, const struct sk_value constant)
 {
     sk_value_array_add(&chunk->constants, constant);
-    size_t index = chunk->constants.count - 1;
+    const size_t index = chunk->constants.count - 1;
 
     sk_chunk_add(chunk, SK_OP_CONST);
     // FIXME: This can currently fail with index greater than a UINT8_MAX.
@@ -62,10 +62,10 @@ void sk_program_free(struct sk_program *program)
     sk_program_init(program);
 }
 
-struct sk_compiled_function *sk_program_add_function(struct sk_program *program, sk_fnptr fnptr)
+struct sk_compiled_function *sk_program_add_function(struct sk_program *program, const sk_fnptr fnptr)
 {
     if (fnptr >= program->functions.capacity) {
-        size_t old_capacity = program->functions.capacity;
+        const size_t old_capacity = program->functions.capacity;
         size_t new_capacity = old_capacity == 0 ? 8 : old_capacity;
         while (fnptr >= new_capacity) {
             new_capacity = sk_grow(new_capacity);
@@ -91,12 +91,12 @@ void sk_vm_stack_init(struct sk_vm_stack *stack)
     stack->top = stack->stack;
 }
 
-void sk_vm_stack_free(struct sk_vm_stack *stack)
+void sk_vm_stack_free(const struct sk_vm_stack *stack)
 {
     (void)stack;
 }
 
-void sk_vm_stack_push(struct sk_vm_stack *stack, struct sk_value value)
+void sk_vm_stack_push(struct sk_vm_stack *stack, const struct sk_value value)
 {
     *stack->top = value;
     stack->top++;
@@ -108,7 +108,7 @@ struct sk_value sk_vm_stack_pop(struct sk_vm_stack *stack)
     return *stack->top;
 }
 
-struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, int depth)
+struct sk_value sk_vm_stack_peek(const struct sk_vm_stack *stack, const int depth)
 {
     return stack->top[-depth - 1];
 }
@@ -120,7 +120,7 @@ void sk_vm_init(struct sk_vm *vm)
     vm->frame_count = 0;
 }
 
-void sk_vm_free(struct sk_vm *vm)
+void sk_vm_free(const struct sk_vm *vm)
 {
     sk_vm_stack_free(&vm->stack);
 }
@@ -159,12 +159,12 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
             case SK_OP_HALT:
                 return SK_VM_OK;
             case SK_OP_RETURN: {
-                struct sk_value result = pop();
+                const struct sk_value result = pop();
                 if (vm->frame_count == 1) {
                     return SK_VM_OK;
                 }
 
-                size_t call_base = vm->frames[vm->frame_count - 1].base;
+                const size_t call_base = vm->frames[vm->frame_count - 1].base;
                 vm->frame_count--;
                 vm->stack.top = vm->stack.stack + call_base;
                 push(result);
@@ -188,21 +188,21 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 break;
 
             case SK_OP_LOAD_LOCAL: {
-                uint8_t slot = read_byte();
+                const uint8_t slot = read_byte();
                 push(vm->stack.stack[frame()->base + slot]);
                 break;
             }
 
             case SK_OP_STORE_LOCAL: {
-                uint8_t slot = read_byte();
+                const uint8_t slot = read_byte();
                 vm->stack.stack[frame()->base + slot] = pop();
                 break;
             }
 
             case SK_OP_CALL: {
-                uint8_t argument_count = read_byte();
-                size_t call_base = (size_t)(vm->stack.top - vm->stack.stack) - argument_count - 1;
-                sk_fnptr fnptr = sk_as_fnptr(vm->stack.stack[call_base]);
+                const uint8_t argument_count = read_byte();
+                const size_t call_base = (size_t)(vm->stack.top - vm->stack.stack) - argument_count - 1;
+                const sk_fnptr fnptr = sk_as_fnptr(vm->stack.stack[call_base]);
                 const struct sk_compiled_function *function = &vm->program->functions.functions[fnptr];
 
                 for (size_t i = 0; i < argument_count; i++) {
@@ -221,50 +221,50 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
             }
 
             case SK_OP_NNEG: {
-                sk_number a = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_number_value(-a));
                 break;
             }
             case SK_OP_NADD: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_number_value(a + b));
                 break;
             }
             case SK_OP_NSUB: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_number_value(a - b));
                 break;
             }
             case SK_OP_NMUL: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_number_value(a * b));
                 break;
             }
             case SK_OP_NDIV: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_number_value(a / b));
                 break;
             }
 
             case SK_OP_NLESS: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_boolean_value(a < b));
                 break;
             }
             case SK_OP_NGREATER: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_boolean_value(a > b));
                 break;
             }
             case SK_OP_NEQUAL: {
-                sk_number b = sk_as_number(pop());
-                sk_number a = sk_as_number(pop());
+                const sk_number b = sk_as_number(pop());
+                const sk_number a = sk_as_number(pop());
                 push(sk_boolean_value(a == b));
                 break;
             }
@@ -278,24 +278,24 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 break;
             }
             case SK_OP_NOT: {
-                sk_bool a = sk_as_boolean(pop());
+                const sk_bool a = sk_as_boolean(pop());
                 push(sk_boolean_value(!a));
                 break;
             }
 
             case SK_OP_JMP: {
-                uint16_t offset = read_short();
+                const uint16_t offset = read_short();
                 frame()->ip += offset;
                 break;
             }
             case SK_OP_JMP_BACK: {
-                uint16_t offset = read_short();
+                const uint16_t offset = read_short();
                 frame()->ip -= offset;
                 break;
             }
             case SK_OP_JMP_TRUE: {
-                uint16_t offset = read_short();
-                sk_bool a = sk_as_boolean(peek(0));
+                const uint16_t offset = read_short();
+                const sk_bool a = sk_as_boolean(peek(0));
                 if (a) {
                     frame()->ip += offset;
                 }
@@ -303,8 +303,8 @@ static enum sk_vm_result vm_loop(struct sk_vm *vm)
                 break;
             }
             case SK_OP_JMP_FALSE: {
-                uint16_t offset = read_short();
-                sk_bool a = sk_as_boolean(peek(0));
+                const uint16_t offset = read_short();
+                const sk_bool a = sk_as_boolean(peek(0));
                 if (!a) {
                     frame()->ip += offset;
                 }
@@ -329,10 +329,10 @@ static void vm_print(struct sk_vm_stack *stack)
 {
     const struct sk_object_string *template = sk_as_string(sk_vm_stack_pop(stack));
     for (size_t i = 0; i < template->length; i++) {
-        char c = template->chars[i];
+        const char c = template->chars[i];
         if (c == '%') {
             // The following line is safe because the char on length + 1 is '\0'.
-            char next_c = template->chars[++i];
+            const char next_c = template->chars[++i];
             switch (next_c) {
                 case 'n':
                     sk_number_print(sk_vm_stack_pop(stack));
@@ -360,7 +360,7 @@ static void vm_print(struct sk_vm_stack *stack)
     printf("\n");
 }
 
-static void reserve_stack_slots(struct sk_vm *vm, size_t count)
+static void reserve_stack_slots(struct sk_vm *vm, const size_t count)
 {
     struct sk_vm_stack *stack = &vm->stack;
     for (size_t i = 0; i < count; i++) {

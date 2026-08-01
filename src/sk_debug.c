@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 static size_t debug_simple_instruction(const char *name);
+static size_t debug_const_instruction(void);
 
 static size_t debug_instruction(uint8_t instruction);
 
@@ -12,7 +13,7 @@ void sk_debug_chunk(const struct sk_chunk *chunk, const char *name)
 
     size_t instruction_index = 0;
     while (instruction_index < chunk->count) {
-        uint8_t instruction = chunk->code[instruction_index];
+        const uint8_t instruction = chunk->code[instruction_index];
         printf("%.4zu | 0x%.2hhx | ", instruction_index, instruction);
         instruction_index += debug_instruction(instruction);
         printf("\n");
@@ -25,13 +26,13 @@ static size_t debug_simple_instruction(const char *name)
     return 1;
 }
 
-static size_t debug_const_instruction()
+static size_t debug_const_instruction(void)
 {
     printf("CONST");
     return 2;
 }
 
-static size_t debug_instruction(uint8_t instruction)
+static size_t debug_instruction(const uint8_t instruction)
 {
     switch (instruction) {
         case SK_OP_HALT:

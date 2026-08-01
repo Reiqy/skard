@@ -508,7 +508,7 @@ static void consume(struct sk_parser *parser, const enum sk_token_type type, con
     error(parser, &parser->current, message);
 }
 
-static struct sk_ast_node *parse_declaration(struct sk_parser *parser, bool is_statement_allowed)
+static struct sk_ast_node *parse_declaration(struct sk_parser *parser, const bool is_statement_allowed)
 {
     if (match(parser, SK_TOKEN_FN)) {
         return parse_fn_declaration(parser);
@@ -750,7 +750,7 @@ static struct sk_ast_node *parse_expression(struct sk_parser *parser)
     return parse_pratt(parser, PREC_ASSIGNMENT);
 }
 
-static struct sk_ast_node *parse_pratt(struct sk_parser *parser, enum precedence precedence)
+static struct sk_ast_node *parse_pratt(struct sk_parser *parser, const enum precedence precedence)
 {
     struct sk_ast_node *left = parse_prefix(parser);
 

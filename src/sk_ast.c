@@ -43,7 +43,7 @@ void sk_ast_parameter_array_free(struct sk_ast_parameter_array *array)
     sk_ast_parameter_array_init(array);
 }
 
-void sk_ast_parameter_array_add(struct sk_ast_parameter_array *array, struct sk_ast_parameter parameter)
+void sk_ast_parameter_array_add(struct sk_ast_parameter_array *array, const struct sk_ast_parameter parameter)
 {
     if (array->count >= array->capacity) {
         array->capacity = sk_grow(array->capacity);
@@ -81,7 +81,7 @@ void sk_ast_node_print(const struct sk_ast_node *node)
     ast_node_print_impl(node, 0);
 }
 
-static void print_expression(const struct sk_ast_node *node, int depth)
+static void print_expression(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     print_parenthesized_expression(node);
@@ -147,7 +147,7 @@ static void print_type(const struct sk_ast_type *type)
     }
 }
 
-static void print_args(const struct sk_ast_node_array *args, int depth)
+static void print_args(const struct sk_ast_node_array *args, const int depth)
 {
     print_indent(depth);
     printf("()\n");
@@ -157,7 +157,7 @@ static void print_args(const struct sk_ast_node_array *args, int depth)
     }
 }
 
-static void print_block(const struct sk_ast_node *node, int depth)
+static void print_block(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("{}\n");
@@ -167,7 +167,7 @@ static void print_block(const struct sk_ast_node *node, int depth)
     }
 }
 
-static void print_let(const struct sk_ast_node *node, int depth)
+static void print_let(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("let %.*s", (int)node->as.let.name.length, node->as.let.name.start);
@@ -181,14 +181,14 @@ static void print_let(const struct sk_ast_node *node, int depth)
     }
 }
 
-static void print_assign(const struct sk_ast_node *node, int depth)
+static void print_assign(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("%.*s =\n", (int)node->as.assign.name.length, node->as.assign.name.start);
     print_expression(node->as.assign.expression, depth + 1);
 }
 
-static void print_if(const struct sk_ast_node *node, int depth)
+static void print_if(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("if\n");
@@ -203,7 +203,7 @@ static void print_if(const struct sk_ast_node *node, int depth)
     ast_node_print_impl(node->as.ifn.else_branch, depth + 1);
 }
 
-static void print_while(const struct sk_ast_node *node, int depth)
+static void print_while(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("while\n");
@@ -211,7 +211,7 @@ static void print_while(const struct sk_ast_node *node, int depth)
     ast_node_print_impl(node->as.whilen.body, depth + 1);
 }
 
-static void print_return(const struct sk_ast_node *node, int depth)
+static void print_return(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("return\n");
@@ -221,14 +221,14 @@ static void print_return(const struct sk_ast_node *node, int depth)
     }
 }
 
-static void print_print(const struct sk_ast_node *node, int depth)
+static void print_print(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("print\n");
     print_args(&node->as.print.args, depth + 1);
 }
 
-static void print_fn(const struct sk_ast_node *node, int depth)
+static void print_fn(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("fn %.*s(", (int)node->as.fn.name.length, node->as.fn.name.start);
@@ -238,7 +238,7 @@ static void print_fn(const struct sk_ast_node *node, int depth)
             printf(", ");
         }
 
-        struct sk_ast_parameter *parameter = &node->as.fn.parameters.parameters[i];
+        const struct sk_ast_parameter *parameter = &node->as.fn.parameters.parameters[i];
         printf("%.*s: ", (int)parameter->name.length, parameter->name.start);
         print_type(&parameter->type);
     }
@@ -253,7 +253,7 @@ static void print_fn(const struct sk_ast_node *node, int depth)
     ast_node_print_impl(node->as.fn.body, depth + 1);
 }
 
-static void print_program(const struct sk_ast_node *node, int depth)
+static void print_program(const struct sk_ast_node *node, const int depth)
 {
     print_indent(depth);
     printf("program:\n");
@@ -263,7 +263,7 @@ static void print_program(const struct sk_ast_node *node, int depth)
     }
 }
 
-static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
+static void ast_node_print_impl(const struct sk_ast_node *node, const int depth)
 {
     if (node == NULL) {
         print_null_node(depth);
@@ -306,20 +306,20 @@ static void ast_node_print_impl(const struct sk_ast_node *node, int depth)
     }
 }
 
-static void print_null_node(int depth)
+static void print_null_node(const int depth)
 {
     print_indent(depth);
     printf("ERROR\n");
 }
 
-static void print_indent(int depth)
+static void print_indent(const int depth)
 {
     for (int i = 0; i < depth; i++) {
         printf("  ");
     }
 }
 
-void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, size_t block_capacity)
+void sk_ast_node_arena_init(struct sk_ast_node_arena *arena, const size_t block_capacity)
 {
     arena->blocks = NULL;
     arena->capacity = 0;
